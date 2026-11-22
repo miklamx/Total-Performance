@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KineticForge | MyoRep Protocol</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for KineticForge typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    
+    <!-- KineticForge Custom Brand Theme Extensions -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                base: '#0F172A',      // Dark Base
+                surface: '#1E293B',   // Surface Layer / Card Background
+                cyan: '#06B6D4',      // Volt Cyan (Primary Accent)
+                amber: '#F59E0B',     // Dynamic Amber (Secondary Accent)
+                text: '#F8FAFC',      // Text Primary
+                muted: '#94A3B8',     // Text Muted
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-brand-base text-brand-text min-h-screen select-none font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
+
+      const STORAGE_KEY = 'myorep-history';
+
+      const MUSCLE_GROUPS = ['ALL', 'TOTAL BODY RELEASE', 'HIP MOBILITY', 'BACK MOBILITY', 'CHEST', 'BACK', 'LEGS', 'SHOULDERS', 'ARMS'];
+
+      const TG_FIT_LEVELS = [
+        { level: 1, angle: '5.2°', bodyWeightPct: 0.38 },
+        { level: 2, angle: '8.0°', bodyWeightPct: 0.45 },
+        { level: 3, angle: '10.9°', bodyWeightPct: 0.52 },
+        { level: 4, angle: '13.8°', bodyWeightPct: 0.58 },
+        { level: 5, angle: '16.7°', bodyWeightPct: 0.63 },
+        { level: 6, angle: '19.6°', bodyWeightPct: 0.68 },
+        { level: 7, angle: '22.6°', bodyWeightPct: 0.72 },
+        { level: 8, angle: '25.8°', bodyWeightPct: 0.76 }
+      ];
+
+      const BAND_OPTIONS = [
+        { id: 'none', label: 'None (Total Gym Only)', tension: 0 },
+        { id: 'orange', label: '#0 Orange (2–15 lbs)', tension: 15 },
+        { id: 'purple', label: '#1 Purple (5–35 lbs)', tension: 35 },
+        { id: 'red', label: '#2 Red (10–50 lbs)', tension: 50 },
+        { id: 'blue', label: '#3 Blue (25–80 lbs)', tension: 80 },
+        { id: 'green', label: '#4 Green (50–120 lbs)', tension: 120 },
+        { id: 'black', label: '#5 Black (60–150 lbs)', tension: 150 }
+      ];
+
+      function getYouTubeId(url) {
+        if (!url) return null;
+        const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
+        return match ? match[1] : null;
+      }
+
+      const EXERCISES = [
+        // ==========================================
+        // 1. TOTAL BODY RELEASE (15 Exercises - Sandy Leo)
+        // ==========================================
+        {
+          id: 'tbr-thoracic-softball-release',
+          name: 'Thoracic Spine Decompression & Pec Opener (Softball Supported) [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym & Soft Ball',
+          description: 'Place soft ball between shoulder blades at base of board, open knees, and slowly fold backward with arms open to reverse thoracic curvature.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=100s',
+          timestampLabel: '1:40'
+        },
+        {
+          id: 'tbr-ql-long-back-decompression',
+          name: 'Supine QL & Long Back Muscle Decompression Stretch [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Lie supine at base of board, pull one ankle back toward glutes while extending opposite arm overhead to open QL and hip flexors.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=200s',
+          timestampLabel: '3:20'
+        },
+        {
+          id: 'tbr-foot-arch-calf-pump',
+          name: 'Foot Arch Activation & Calf Achilles Pump [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Grip squat stand with toes to activate foot arch tendons, then slowly drop heels up and down to pump calves and Achilles.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=374s',
+          timestampLabel: '6:14'
+        },
+        {
+          id: 'tbr-heel-click-abductor-turnon',
+          name: 'Heel-Click Gluteus Medius & Abductor Activation [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Click heels together with toes turned outward, open knees, and press board out to turn on gluteus medius and hip abductors.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=463s',
+          timestampLabel: '7:43'
+        },
+        {
+          id: 'tbr-hip-stir-pot-hug',
+          name: 'Hip Joint Stir-the-Pot Mobilizer & Hug [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Hug single knee to chest on glideboard and perform 5 controlled circles each direction driving purely from the hip socket.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=530s',
+          timestampLabel: '8:50'
+        },
+        {
+          id: 'tbr-hamstring-sciatic-cross',
+          name: 'Hamstring Dynamic Flex & Sciatic Nerve Cross Stretch [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Extend leg straight up flexing foot, then cross ankle over toward opposite shoulder to relieve sciatic nerve entrapment.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=552s',
+          timestampLabel: '9:12'
+        },
+        {
+          id: 'tbr-seated-forward-fold',
+          name: 'Seated Glideboard Forward Fold Decompression [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Sit forward on closed glideboard with straight legs, reach for toes and hang torso forward to decompress lower back.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=689s',
+          timestampLabel: '11:29'
+        },
+        {
+          id: 'tbr-seated-underarm-c-tuck',
+          name: 'Seated Under-Arm Spinal Articulation C-Tuck [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Seated with feet on struts, hold toe bar with hands inside knees, tuck pelvis into deep C-curve and roll back.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=720s',
+          timestampLabel: '12:00'
+        },
+        {
+          id: 'tbr-seated-saw-rotation',
+          name: 'Seated Pilates Saw Spinal Rotation [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Seated posture, rotate entire upper torso, tuck chin, and roll forward over legs to stretch lower back and lateral hamstrings.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=762s',
+          timestampLabel: '12:42'
+        },
+        {
+          id: 'tbr-cervical-thoracic-headpress',
+          name: 'Cervical-Thoracic Neck Rotation & Head Press [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Turn head side-to-side looking over palms, then clasp hands behind head and push skull into hands to strengthen deep neck flexors.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=817s',
+          timestampLabel: '13:37'
+        },
+        {
+          id: 'tbr-posture-arms-behind-finger-open',
+          name: 'Posture Muscle Finger-Open Extension (Behind Body) [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Bring open arms behind body line with splayed fingers to force scapular retraction and open chest pectorals.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=894s',
+          timestampLabel: '14:54'
+        },
+        {
+          id: 'tbr-mermaid-ql-side-reach',
+          name: 'Seated Glideboard Mermaid QL & Oblique Side Reach [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Sit side-saddle in mermaid position, press palm against squat bar, and reach opposite arm overhead past ear to lengthen QL.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=932s',
+          timestampLabel: '15:32'
+        },
+        {
+          id: 'tbr-decline-footholder-inverted-hang',
+          name: 'Decline Foot-Holder Inverted Spinal Traction [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym (Foot Holder)',
+          description: 'Anchor feet in top foot holders, soft knees, roll down in full decline hang to decompress lumbar spine with side wrist pulls.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=1102s',
+          timestampLabel: '18:22'
+        },
+        {
+          id: 'tbr-tva-ccurve-rollback',
+          name: 'Transverse Abdominis (TVA) C-Curve Roll-Down Activation [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Seated on glideboard with bent knees, tilt pelvis into C-curve and slowly roll lower spine down with deep exhalations.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=1219s',
+          timestampLabel: '20:19'
+        },
+        {
+          id: 'tbr-seated-cross-knee-glute-release',
+          name: 'Seated Crossed-Leg Hip External Rotator Release [Sandy Leo]',
+          category: 'TOTAL BODY RELEASE',
+          equipment: 'Total Gym',
+          description: 'Seated upright, cross ankle over knee and apply gentle downward pressure on knee to release tight outer hips and glutes.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MUIVSiBz0lk?t=1304s',
+          timestampLabel: '21:44'
+        },
+
+        // ==========================================
+        // 2. HIP MOBILITY (17 Exercises)
+        // ==========================================
+        {
+          id: 'mob-glute-bridge-squat',
+          name: 'Glute Bridge Squat',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Press hips into bridge while executing smooth squat motion for glute and hamstring activation.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/WdEY2WYKMpw?t=3s',
+          timestampLabel: '0:03'
+        },
+        {
+          id: 'mob-side-plank-hip-lift',
+          name: 'Supported Side Plank Hip Lift',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Side-lying position on glideboard, lift hips to recruit underneath hip abductors.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/WdEY2WYKMpw?t=67s',
+          timestampLabel: '1:07'
+        },
+        {
+          id: 'mob-supported-lunge-stab',
+          name: 'Supported Lunge & Hip Stabilization',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Foot on squat stand, slide board back in controlled lunge for pelvic alignment.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/WdEY2WYKMpw?t=97s',
+          timestampLabel: '1:37'
+        },
+        {
+          id: 'mob-rail-hip-flexor-lunge',
+          name: 'Rail-Supported Hip Flexor Lunge Stretch',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Step foot parallel to lap bar or wing, let hips drop through rails for deep flexor release.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/fIXb9_5mLM8?t=10s',
+          timestampLabel: '0:10'
+        },
+        {
+          id: 'mob-quad-hip-stretch',
+          name: 'Quadriceps & Hip Flexor Decompression Stretch',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Pull board up rails, reach back for ankle or foot, slowly lower into deep quad stretch.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/fIXb9_5mLM8?t=23s',
+          timestampLabel: '0:23'
+        },
+        {
+          id: 'mob-squat-stand-lunge-stretch',
+          name: 'Squat Stand Lunge Stretch',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Lunge facing squat stand, holding static stretch for 30 to 60 seconds to open hip flexors.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/fIXb9_5mLM8?t=46s',
+          timestampLabel: '0:46'
+        },
+        {
+          id: 'mob-glute-bridge-rollout',
+          name: 'Elevated Glute Bridge Hamstring Rollout',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Feet on squat stand, hold hips in elevated bridge while extending and curling glideboard.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtube.com/shorts/-kW5vfrzL9E?t=1s',
+          timestampLabel: '0:01'
+        },
+        {
+          id: 'mob-single-leg-rollout',
+          name: 'Single-Leg Elevated Glute Bridge Rollout',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Unilateral elevated glute bridge, extending free leg upward while rolling board.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtube.com/shorts/-kW5vfrzL9E?t=9s',
+          timestampLabel: '0:09'
+        },
+        {
+          id: 'mob-glideboard-pigeon',
+          name: 'Glideboard Pigeon Pose Stretch',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Cross leg across board, press glideboard up to open glutes and deep hip rotators.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/0zCdVpYby-M?t=323s',
+          timestampLabel: '5:23'
+        },
+        {
+          id: 'mob-prone-hip-opener',
+          name: 'Prone Hip Opener Lunge & Quad Stretch',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Step large foot forward beside base, sink into board to open deep hip capsule.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/0zCdVpYby-M?t=405s',
+          timestampLabel: '6:45'
+        },
+        {
+          id: 'mob-3leg-dog-climber',
+          name: '3-Legged Dog to Mountain Climber Flow',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Elevated down-dog leg lift driving knee under torso to mobilize hips and core.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/0zCdVpYby-M?t=525s',
+          timestampLabel: '8:45'
+        },
+        {
+          id: 'mob-quad-supported-lunge',
+          name: 'Glideboard Quad-Supported Lunge',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Kneel with one foot on board, drive through glute and quad without wrist or back strain.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/MS4Y80oVbyg?t=435s',
+          timestampLabel: '7:15'
+        },
+        {
+          id: 'mob-sl-lying-hip-flexor',
+          name: 'Glideboard Lying Hip Flexor & Quad Stretch [Sandy Leo]',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Lie supine on glideboard, pull ankle back toward glute while extending opposite arm overhead.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=271s',
+          timestampLabel: '4:31'
+        },
+        {
+          id: 'mob-sl-unilateral-glute-squat',
+          name: 'Unilateral Single-Leg Squat with Glute Pulse [Sandy Leo]',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Single-leg squat with strict foot alignment in line with hip, incorporating 3-second bottom pulses to recruit glute medius.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=765s',
+          timestampLabel: '12:45'
+        },
+        {
+          id: 'mob-sl-bridge-adductor-taps',
+          name: 'Glute Bridge Roll-Up with Adductor Taps [Sandy Leo]',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Elevate hips into glute bridge, roll board up and perform fast adductor knee taps to fire inner thighs and lower abs.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=984s',
+          timestampLabel: '16:24'
+        },
+        {
+          id: 'mob-sl-unilateral-bridge-lift',
+          name: 'Unilateral Single-Leg Glute Bridge Roll-Up [Sandy Leo]',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Single-leg elevated bridge roll-up focusing on isolated glute drive without hip rotation.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=1122s',
+          timestampLabel: '18:42'
+        },
+        {
+          id: 'mob-sl-kneeling-split-stretch',
+          name: 'Kneeling Hip Flexor & Hamstring Split Stretch [Sandy Leo]',
+          category: 'HIP MOBILITY',
+          equipment: 'Total Gym',
+          description: 'One knee on glideboard, opposite foot on base, glide board back to open hip flexors and front hamstring simultaneously.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=1249s',
+          timestampLabel: '20:49'
+        },
+
+        // ==========================================
+        // 3. BACK MOBILITY (14 Exercises)
+        // ==========================================
+        {
+          id: 'mob-pelvic-c-curve',
+          name: 'Pelvic Tilt C-Curve Mobility',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Seated at base of board, gently tilt pelvis forward and back to release QL and low back.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/0zCdVpYby-M?t=30s',
+          timestampLabel: '0:30'
+        },
+        {
+          id: 'mob-spine-down-dog',
+          name: 'Prone Spine Extension into Down-Dog Decompression',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Hands on board, transition from spinal extension into high down-dog hamstring stretch.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/0zCdVpYby-M?t=280s',
+          timestampLabel: '4:40'
+        },
+        {
+          id: 'mob-spine-decompression-ql',
+          name: 'Decompression Spinal Stretch & QL Reach',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Lie supine inverted on board, reach overhead to decompress spine and stretch QL.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/MS4Y80oVbyg?t=661s',
+          timestampLabel: '11:01'
+        },
+        {
+          id: 'mob-sl-standing-ql-reach',
+          name: 'Standing QL & Lateral Fascia Reach Stretch [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Cross leg behind with turned-out foot, reach arm overhead across body to decompress QL and lateral fascia.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=155s',
+          timestampLabel: '2:35'
+        },
+        {
+          id: 'mob-sl-supine-decomp-reach',
+          name: 'Supine Full-Body Spinal Decompression Reach [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Lie supine on incline, grasp opposite wrist overhead and pull laterally to open lumbar spine.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=440s',
+          timestampLabel: '7:20'
+        },
+        {
+          id: 'mob-sl-c-curve-roll-down',
+          name: 'Pilates C-Curve Abdominal Roll-Down [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Seated on board, engage transverse abdominis to tuck pelvis and slowly roll spine down in a controlled C-curve.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=550s',
+          timestampLabel: '9:10'
+        },
+        {
+          id: 'mob-sl-child-pose-ql-thread',
+          name: 'Glideboard Child Pose & QL Thread-The-Needle Stretch [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Kneel wide on board, sink hips back into child pose and thread arm underneath torso to stretch QL.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=609s',
+          timestampLabel: '10:09'
+        },
+        {
+          id: 'mob-sl-cat-cow',
+          name: 'Quadruped Cat-Cow Spinal Articulation [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Quadruped position on board, alternate between spinal flexion (cat) and extension (cow) to mobilize vertebrae.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/GIc_AJh6wek?t=701s',
+          timestampLabel: '11:41'
+        },
+        {
+          id: 'mob-sl-seated-pelvic-roll',
+          name: 'Seated Pelvic Roll & QL Release [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Straddle base with feet in handles, place fingers on pelvis and roll gently to release tight QL muscles.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/IbniS-taiLs?t=34s',
+          timestampLabel: '0:34'
+        },
+        {
+          id: 'mob-sl-seated-arm-reach',
+          name: 'Seated Arm Reach & QL Side-Stretch [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Seated on board, reach overhead grabbing opposite wrist and gently pulling laterally to open lower back fascia.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/IbniS-taiLs?t=49s',
+          timestampLabel: '0:49'
+        },
+        {
+          id: 'mob-sl-seated-pilates-saw',
+          name: 'Seated Pilates Saw Stretch [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Seated straddle with airplane arms, rotate torso and reach pinky finger across opposite foot with an exhale to open hamstrings and low back.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/IbniS-taiLs?t=71s',
+          timestampLabel: '1:11'
+        },
+        {
+          id: 'mob-sl-pillow-hip-flexor',
+          name: 'Lying Single-Leg Hip Flexor & Quad Release (Pillow Assisted) [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Lie supine with pillow under foot, drop knee toward floor while pushing opposite hip down to release tight hip flexors.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/IbniS-taiLs?t=170s',
+          timestampLabel: '2:50'
+        },
+        {
+          id: 'mob-sl-prone-extension-rotation',
+          name: 'Prone Extension & Oblique Rotation [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Lie prone with forearms on board, zip abs off board and gently rotate upper torso side to side with glutes engaged.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/IbniS-taiLs?t=287s',
+          timestampLabel: '4:47'
+        },
+        {
+          id: 'mob-sl-incline-childs-pose',
+          name: 'Incline Child\'s Pose Lumbar Release [Sandy Leo]',
+          category: 'BACK MOBILITY',
+          equipment: 'Total Gym',
+          description: 'Kneel facing tower with hands forward on closed glideboard, press hips back into child pose for extended lumbar spine traction.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/IbniS-taiLs?t=335s',
+          timestampLabel: '5:35'
+        },
+
+        // ==========================================
+        // 4. CHEST (14 Exercises)
+        // ==========================================
+        {
+          id: 'tg-chest-skyler-incline-fly',
+          name: '45° Offset Incline Cable Fly [SkylerKing]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Sit at 45° angle at base of board to create true lateral resistance path across upper chest.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/6LRfDG8sdLs?t=400s',
+          timestampLabel: '6:40'
+        },
+        {
+          id: 'tg-chest-skyler-lower-crossover',
+          name: '45° Offset Lower Cable Crossover [SkylerKing]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Sit at 45° angle, sweep handle lower across knee to target PEC major without shoulder takeover.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/6LRfDG8sdLs?t=506s',
+          timestampLabel: '8:26'
+        },
+        {
+          id: 'tg-chest-hr-feet-press',
+          name: 'Seated Chest Press (Feet Supported) [Hybrid Resistance]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Press through nipple line with feet grounded for force dissipation and forced reps.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/2u1ds-5ccow?t=90s',
+          timestampLabel: '1:30'
+        },
+        {
+          id: 'tg-chest-hr-incline-press',
+          name: 'Tilted High-Angle Incline Cable Press [Hybrid Resistance]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'High-seated/kneeling position with cable extension to change line of action toward upper chest.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/2u1ds-5ccow?t=174s',
+          timestampLabel: '2:54'
+        },
+        {
+          id: 'tg-chest-hr-low-seated-press',
+          name: 'Low-Seated Horizontal Cable Press [Hybrid Resistance]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Seated low on glideboard with extended cables to align resistance line directly across mid-chest.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/2u1ds-5ccow?t=196s',
+          timestampLabel: '3:16'
+        },
+        {
+          id: 'tg-chest-hr-pilates-bar-press',
+          name: 'Pilates Toe Bar Incline Push / Bar Press [Hybrid Resistance]',
+          category: 'CHEST',
+          equipment: 'Total Gym (Pilates Bar)',
+          description: 'Low glideboard position pressing up against Pilates Toe Bar or external press bar.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/2u1ds-5ccow?t=326s',
+          timestampLabel: '5:26'
+        },
+        {
+          id: 'tg-chest-press-hge',
+          name: 'Seated Chest Press [The Home Gym Experience]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Seated facing away, press handles straight forward keeping chest up.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/UlmA1srwb8o?t=0s',
+          timestampLabel: '0:00'
+        },
+        {
+          id: 'tg-incline-chest-press-hge',
+          name: 'Incline Chest Press (Kneeling) [The Home Gym Experience]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Kneel facing away, press handles upward at an angle toward upper chest.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/UlmA1srwb8o?t=58s',
+          timestampLabel: '0:58'
+        },
+        {
+          id: 'tg-chest-flys-hge',
+          name: 'Seated Chest Flys [The Home Gym Experience]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Seated facing away, sweep arms forward in wide arc bringing hands together.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/UlmA1srwb8o?t=88s',
+          timestampLabel: '1:28'
+        },
+        {
+          id: 'tg-incline-chest-flys-hge',
+          name: 'Incline Chest Flys (Kneeling) [The Home Gym Experience]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Kneel facing away, sweep handles upward and inward across upper chest.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/UlmA1srwb8o?t=118s',
+          timestampLabel: '1:58'
+        },
+        {
+          id: 'tg-pec-raises-kneeling-hge',
+          name: 'Pec Raises (Kneeling) [The Home Gym Experience]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Kneeling position, scoop handles upward focusing on lower chest contraction.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/UlmA1srwb8o?t=148s',
+          timestampLabel: '2:28'
+        },
+        {
+          id: 'tg-alt-pec-raises-hge',
+          name: 'Alternating Pec Raises (Kneeling) [The Home Gym Experience]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Kneeling position, scoop handles upward one arm at a time.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/UlmA1srwb8o?t=178s',
+          timestampLabel: '2:58'
+        },
+        {
+          id: 'tg-single-arm-chest-fly-hge',
+          name: 'Single Arm Chest Fly [The Home Gym Experience]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Kneel or sit sideways/angled, perform unilateral fly to maximize squeeze.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/UlmA1srwb8o?t=208s',
+          timestampLabel: '3:28'
+        },
+        {
+          id: 'tg-lying-pullovers-hge',
+          name: 'Lying Arm Pullover [The Home Gym Experience]',
+          category: 'CHEST',
+          equipment: 'Total Gym',
+          description: 'Lie supine, pull handles from overhead down to waist line.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/UlmA1srwb8o?t=217s',
+          timestampLabel: '3:37'
+        },
+
+        // ==========================================
+        // 5. BACK (27 Exercises)
+        // ==========================================
+        {
+          id: 'tg-back-hr-back-ext-iyt',
+          name: 'Prone Back Extension & Arm Reaches (I-Y-T) [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Prone on glideboard, raise torso into back extension while performing I-Y-T arm reaches to engage upper back and spinal erectors.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=120s',
+          timestampLabel: '2:00'
+        },
+        {
+          id: 'tg-back-hr-dip-ext',
+          name: 'Dip-Bar Supported Back Extension [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym (Dip Bars)',
+          description: 'Place hands on dip bars to perform controlled spinal flexion and extension with offloaded lower back pressure.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=235s',
+          timestampLabel: '3:55'
+        },
+        {
+          id: 'tg-back-hr-decomp-hang',
+          name: 'Wing Attachment Decompression Hang [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym (Wing Attachment)',
+          description: 'Grasp top wing handles to perform a passive spinal traction hang on the glideboard.',
+          defaultLevel: 'Level 1',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=262s',
+          timestampLabel: '4:22'
+        },
+        {
+          id: 'tg-back-hr-glute-hip-ext',
+          name: 'Prone Hip & Glute Extension [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Lie face down, extend legs through glute drive to stabilize the lumbar-sacral junction.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=293s',
+          timestampLabel: '4:53'
+        },
+        {
+          id: 'tg-back-hr-bird-dog',
+          name: 'Incline Bird-Dog (Quadruped Reach) [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Quadruped stance on glideboard, reach opposite arm and leg out to train cross-body stability.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=386s',
+          timestampLabel: '6:26'
+        },
+        {
+          id: 'tg-back-hr-side-plank-hold',
+          name: 'Side Plank Lumbar Hold [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Isometric side-plank hold on board to brace quadratus lumborum and obliques without spinal rotation.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=445s',
+          timestampLabel: '7:25'
+        },
+        {
+          id: 'tg-back-hr-high-incline-ext',
+          name: 'High-Incline Seated Back Extension [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Seated row extension focus keeping back straight while driving resistance through hip hinge.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=524s',
+          timestampLabel: '8:44'
+        },
+        {
+          id: 'tg-back-hr-bridge-hold',
+          name: 'Squat Stand Glute & Low Back Bridge [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym (Squat Stand)',
+          description: 'Feet on squat stand, drive hips high into a bridge to hold isometric glute and spinal extension.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=574s',
+          timestampLabel: '9:34'
+        },
+        {
+          id: 'tg-back-hr-good-mornings',
+          name: 'Good Mornings & Hinge Pulses [Hybrid Resistance]',
+          category: 'BACK',
+          equipment: 'Total Gym (Squat Stand / Bar)',
+          description: 'Hinge forward at hips keeping spine completely flat to target hamstrings, glutes, and spinal erectors.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/1P6CzdR66b0?t=661s',
+          timestampLabel: '11:01'
+        },
+        {
+          id: 'tg-back-hge-seated-row',
+          name: 'Seated Rows [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Classic seated row facing tower, driving elbows back into ribcage with full scapular retraction.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=31s',
+          timestampLabel: '0:31'
+        },
+        {
+          id: 'tg-back-hge-kneeling-row',
+          name: 'Kneeling Rows [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Kneel facing tower to increase core stabilization while pulling handles back to hips.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=40s',
+          timestampLabel: '0:40'
+        },
+        {
+          id: 'tg-back-hge-standing-row',
+          name: 'Standing Rows [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Standing on glideboard in semi-squat, driving handles back for low-to-high angle load.',
+          defaultLevel: 'Level 6',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=50s',
+          timestampLabel: '0:50'
+        },
+        {
+          id: 'tg-back-hge-single-arm-row',
+          name: 'Single Arm Rows [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Unilateral row on glideboard to correct imbalances and maximize lat contraction.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=60s',
+          timestampLabel: '1:00'
+        },
+        {
+          id: 'tg-back-hge-single-arm-lat-pull',
+          name: 'Single Arm Lat Pulls [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Prone single-arm pull down the board focusing on isolated latissimus dorsi stretch.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=85s',
+          timestampLabel: '1:25'
+        },
+        {
+          id: 'tg-back-hge-side-lat-crunch',
+          name: 'Side Lat Crunch Press [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Side-kneeling stance pulling high handle down while crunching oblique and lat.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=107s',
+          timestampLabel: '1:47'
+        },
+        {
+          id: 'tg-back-hge-close-grip-pulldown',
+          name: 'Close Grip Pulldown [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Supine position on glideboard pulling handles straight down to chest line.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=131s',
+          timestampLabel: '2:11'
+        },
+        {
+          id: 'tg-back-hge-kneeling-reverse-fly',
+          name: 'Kneeling Reverse Flys [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Kneel facing tower, sweep arms out wide to hit rear delts and rhomboids.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=142s',
+          timestampLabel: '2:22'
+        },
+        {
+          id: 'tg-back-hge-prone-db-row',
+          name: 'Prone Dumbbell Rows [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym & Dumbbells',
+          description: 'Chest supported face down on incline board, performing free-weight dumbbell rows.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=154s',
+          timestampLabel: '2:34'
+        },
+        {
+          id: 'tg-back-hge-pull-ups-wing',
+          name: 'Pull-Ups (Wing Bar) [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym (Wing Attachment)',
+          description: 'Prone on glideboard, pull body up using top wide wing bar.',
+          defaultLevel: 'Level 6',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=164s',
+          timestampLabel: '2:44'
+        },
+        {
+          id: 'tg-back-hge-close-grip-pull-ups',
+          name: 'Close Grip Pull-Ups (Wing Bar) [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym (Wing Attachment)',
+          description: 'Prone position with narrow grip on wing bar to shift focus to lower lats.',
+          defaultLevel: 'Level 6',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=174s',
+          timestampLabel: '2:54'
+        },
+        {
+          id: 'tg-back-hge-pull-ups-handles',
+          name: 'Pull-Ups (Handles) [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Prone pull-up using flexible cable handles at top stand.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=184s',
+          timestampLabel: '3:04'
+        },
+        {
+          id: 'tg-back-hge-behind-neck-pullups',
+          name: 'Behind Neck Pull-Ups [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Supine position pulling handles behind neck line to target upper back and traps.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=194s',
+          timestampLabel: '3:14'
+        },
+        {
+          id: 'tg-back-hge-kneeling-pullover',
+          name: 'Kneeling Pullovers [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Kneeling facing away, sweep handles straight-armed overhead down to thighs.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=206s',
+          timestampLabel: '3:26'
+        },
+        {
+          id: 'tg-back-hge-prone-pullover',
+          name: 'Prone Lat Pullovers [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Face down on glideboard, sweeping cables in wide arch to hips.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=235s',
+          timestampLabel: '3:35'
+        },
+        {
+          id: 'tg-back-hge-lying-pullover',
+          name: 'Lying Pullovers [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Lie supine, drive handles from overhead down to waist line to expand lats.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=227s',
+          timestampLabel: '3:47'
+        },
+        {
+          id: 'tg-back-hge-kneeling-supine-row',
+          name: 'Kneeling Supine Rows [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Kneeling position with underhand grip pulling cables into lower abdomen.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=238s',
+          timestampLabel: '3:58'
+        },
+        {
+          id: 'tg-back-hge-kneeling-wide-row',
+          name: 'Kneeling Wide Rows [The Home Gym Experience]',
+          category: 'BACK',
+          equipment: 'Total Gym',
+          description: 'Kneeling position pulling elbows wide at 90 degrees to load upper back and rear delts.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/nwcuMf2M6Ho?t=248s',
+          timestampLabel: '4:08'
+        },
+
+        // ==========================================
+        // 6. LEGS (26 Exercises)
+        // ==========================================
+        {
+          id: 'tg-legs-tgd-single-leg-deadlift',
+          name: 'Single-Leg Glideboard Deadlift [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'Stand facing away with one foot on floor and rear foot on glideboard; hinge at hips sliding board back to isolate standing hamstring and glute.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/P8rC_VnMWyk?t=74s',
+          timestampLabel: '1:14'
+        },
+        {
+          id: 'tg-legs-tgd-push-reach-deadlift',
+          name: 'Push & Reach Deadlift [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'Straddle high-incline glideboard, place hands on board and press up rails while hinging hips forward to stretch and load hamstrings.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/P8rC_VnMWyk?t=152s',
+          timestampLabel: '2:32'
+        },
+        {
+          id: 'tg-legs-tgd-cable-straight-leg-deadlift',
+          name: 'Supine Cable Straight-Leg Deadlift Press [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'Lie supine with single cable strap hooked under foot arch, lower straight leg down from vertical hip hinge to load posterior chain.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/P8rC_VnMWyk?t=217s',
+          timestampLabel: '3:37'
+        },
+        {
+          id: 'tg-legs-hr-side-lying-squat',
+          name: 'Single-Leg Squat (Side-Lying / Glute Drive) [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'Lie sideways on board, kick out through heel targeting outer glute and quad with light band tension.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/bLrO4htXz6U?t=192s',
+          timestampLabel: '3:12'
+        },
+        {
+          id: 'tg-legs-hr-prone-diagonal-push',
+          name: 'Prone Diagonal Glute Push-Off [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'Face down diagonally on board, press off squat stand emphasizing glute and hamstring drive.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/bLrO4htXz6U?t=264s',
+          timestampLabel: '4:24'
+        },
+        {
+          id: 'tg-legs-hr-jump-squats',
+          name: 'Decompressed Jump Squats [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'High tempo explosive jumps off squat stand taking all compression off lower back.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/bLrO4htXz6U?t=304s',
+          timestampLabel: '5:04'
+        },
+        {
+          id: 'tg-legs-hr-ankle-kickbacks',
+          name: 'Ankle Strap Glute Kickbacks [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Ankle Attachment)',
+          description: 'Attach ankle strap to low cable, drive heel back for isolated glute extension.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/bLrO4htXz6U?t=351s',
+          timestampLabel: '5:51'
+        },
+        {
+          id: 'tg-legs-hr-rail-grip-curls',
+          name: 'Prone Rail-Grip Hamstring Curls [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Ankle Attachment)',
+          description: 'Face tower holding rails, perform knee flexion curls targeting hamstrings.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/bLrO4htXz6U?t=378s',
+          timestampLabel: '6:18'
+        },
+        {
+          id: 'tg-legs-hr-lying-leg-curls',
+          name: 'Lying Hamstring Leg Curls [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Ankle Attachment)',
+          description: 'Lie supine or slight diagonal, curl board up towards glutes.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/bLrO4htXz6U?t=418s',
+          timestampLabel: '6:58'
+        },
+        {
+          id: 'tg-legs-hr-centered-pistol',
+          name: 'Single-Leg Pistol Press (Centered Foot) [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'Place foot directly in center of squat stand to isolate quadriceps during single leg press.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/mGdv6gF2IcQ?t=147s',
+          timestampLabel: '2:27'
+        },
+        {
+          id: 'tg-legs-hr-heel-driven-lockout',
+          name: 'Heel-Driven Quad Lockouts [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'Heels placed at base, drive through heels to lock out knees using pure quad extension.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/mGdv6gF2IcQ?t=235s',
+          timestampLabel: '3:55'
+        },
+        {
+          id: 'tg-legs-hr-pilates-bar-quad-ext',
+          name: 'Prone Pilates Bar Quad Extensions [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Pilates Bar)',
+          description: 'Prone on board, extend knees against Pilates bar focusing on mid-to-lower quad contraction.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/mGdv6gF2IcQ?t=275s',
+          timestampLabel: '4:35'
+        },
+        {
+          id: 'tg-legs-hr-seated-heavy-ext',
+          name: 'Seated Heavy Weighted Knee Extensions [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Ankle Attachment & Weights)',
+          description: 'Seated at top of glideboard, perform slow controlled knee extension loaded with weights or chains.',
+          defaultLevel: 'Level 6',
+          videoUrl: 'https://youtu.be/mGdv6gF2IcQ?t=408s',
+          timestampLabel: '6:48'
+        },
+        {
+          id: 'tg-legs-hr-prone-knee-ext',
+          name: 'Prone Knee Extensions (Weight/Chain Loaded) [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Ankle Attachment)',
+          description: 'Prone position with knees just past glideboard edge, extending legs back with slow pacing.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/mGdv6gF2IcQ?t=541s',
+          timestampLabel: '9:01'
+        },
+        {
+          id: 'tg-legs-hr-banded-quad-ext',
+          name: 'Body Elastic Band Quad Extensions [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym & Loop Bands',
+          description: 'Attach tube/loop bands to tower frame and execute seated single-leg quad extensions.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/mGdv6gF2IcQ?t=637s',
+          timestampLabel: '10:37'
+        },
+        {
+          id: 'tg-legs-hr-single-jump-preexhaust',
+          name: 'Single-Leg Jump Squat Pre-Exhaust [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym',
+          description: 'Deep single-leg jump squat repetitions to pre-exhaust glutes, hamstrings, and quads.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/PBk_wEoLwPs?t=100s',
+          timestampLabel: '1:40'
+        },
+        {
+          id: 'tg-legs-hr-banded-squat-overlay',
+          name: 'Step-Off Banded Squat Overlays [Hybrid Resistance]',
+          category: 'LEGS',
+          equipment: 'Total Gym & Heavy Bands',
+          description: 'Progressively increase band resistance across squat stand for peak overload at top lockout.',
+          defaultLevel: 'Level 6',
+          videoUrl: 'https://youtu.be/PBk_wEoLwPs?t=240s',
+          timestampLabel: '4:00'
+        },
+        {
+          id: 'tg-legs-tgd-basic-hamstring-pull',
+          name: 'Basic Hamstring Pull (Cable Assisted) [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Supine stance with cable attached to tibia, flex foot and press leg down engaging hamstrings.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=142s',
+          timestampLabel: '2:22'
+        },
+        {
+          id: 'tg-legs-tgd-hamstring-abduction',
+          name: 'Hamstring Pull with Lateral Abduction [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Combine vertical hamstring pull with outward abduction to target adductors and inner thighs.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=220s',
+          timestampLabel: '3:40'
+        },
+        {
+          id: 'tg-legs-tgd-sideline-leg-pull',
+          name: 'Side-Lying Leg Pull & Inner Thigh Scoop [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Side-lying posture, scoop leg across midline below board edge to engage inner thigh adducts.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=278s',
+          timestampLabel: '4:38'
+        },
+        {
+          id: 'tg-legs-tgd-sideline-press-ext',
+          name: 'Side-Lying Leg Press to Back Extension [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Press leg away 90° then sweep straight back into full glute and hip extension.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=342s',
+          timestampLabel: '5:42'
+        },
+        {
+          id: 'tg-legs-tgd-sideline-circles',
+          name: 'Side-Lying Leg Circles (Hip Mobility) [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Controlled leg rotation circles in side-lying position to recruit stabilizers around hip joint.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=427s',
+          timestampLabel: '7:07'
+        },
+        {
+          id: 'tg-legs-tgd-supine-circles',
+          name: 'Supine Leg Circles & Adductor Sweep [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Supine on board, rotate leg in wide arcs to stretch and strengthen around hip capsule.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=491s',
+          timestampLabel: '8:11'
+        },
+        {
+          id: 'tg-legs-tgd-prone-cable-curl',
+          name: 'Prone Cable Hamstring Curl [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Prone on forearms, extend leg straight back and curl against pulley tension.',
+          defaultLevel: 'Level 2',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=546s',
+          timestampLabel: '9:06'
+        },
+        {
+          id: 'tg-legs-tgd-prone-curl-lift',
+          name: 'Prone Hamstring Curl with Glute Lift [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Execute prone hamstring curl followed by high straight-leg glute lift.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=607s',
+          timestampLabel: '10:07'
+        },
+        {
+          id: 'tg-legs-tgd-curl-open-knee',
+          name: 'Hamstring Curl with Open Knee Press [TotalGymDirect]',
+          category: 'LEGS',
+          equipment: 'Total Gym (Leg Pulley System)',
+          description: 'Combine ham curl with lateral open knee drive recruiting glute medius and minimus.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/01t2gZbRZy0?t=625s',
+          timestampLabel: '10:25'
+        },
+
+        // ==========================================
+        // 7. SHOULDERS (5 Exercises)
+        // ==========================================
+        {
+          id: 'tg-sh-hr-inverted-press',
+          name: 'Inverted Shoulder Overhead Press [Hybrid Resistance]',
+          category: 'SHOULDERS',
+          equipment: 'Total Gym',
+          description: 'Lying upside down face-up on glideboard, pressing hands straight overhead against bodyweight incline.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/BfLIqsN9e_0?t=60s',
+          timestampLabel: '1:00'
+        },
+        {
+          id: 'tg-sh-hr-supine-delt-raise',
+          name: 'Inverted Supine Lateral Delt Raises [Hybrid Resistance]',
+          category: 'SHOULDERS',
+          equipment: 'Total Gym',
+          description: 'Lying upside down face-up, perform wide lateral sweeps to isolate side deltoids.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/BfLIqsN9e_0?t=365s',
+          timestampLabel: '6:05'
+        },
+        {
+          id: 'tg-sh-hr-top-anchor-pullup',
+          name: 'Top-Anchor Handles Pull-Ups [Hybrid Resistance]',
+          category: 'SHOULDERS',
+          equipment: 'Total Gym & Carabiners',
+          description: 'Clip auxiliary handles directly to top tower stand to perform tight-grip vertical pulls.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/BfLIqsN9e_0?t=500s',
+          timestampLabel: '8:20'
+        },
+        {
+          id: 'tg-sh-hr-rear-delt-fly',
+          name: 'Low Incline Cross-Grip Rear Delt Flys [Hybrid Resistance]',
+          category: 'SHOULDERS',
+          equipment: 'Total Gym',
+          description: 'Cross-cable grip on low incline, sweeping handles wide to hit posterior deltoids.',
+          defaultLevel: 'Level 3',
+          videoUrl: 'https://youtu.be/BfLIqsN9e_0?t=854s',
+          timestampLabel: '14:14'
+        },
+        {
+          id: 'tg-sh-hr-fixed-row-pullup',
+          name: 'Fixed-Anchor High Cable Row Pull-Up [Hybrid Resistance]',
+          category: 'SHOULDERS',
+          equipment: 'Total Gym',
+          description: 'Closed-chain row movement pulling torso toward fixed top handles to recruit lats and rear delts.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/BfLIqsN9e_0?t=895s',
+          timestampLabel: '14:55'
+        },
+
+        // ==========================================
+        // 8. ARMS (10 Exercises)
+        // ==========================================
+        {
+          id: 'tg-arm-hr-alt-curl',
+          name: 'Seated Alternating & Palms-Up Biceps Curls [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym',
+          description: 'Seated moderate-to-high incline, perform alternating curls transitioning into supinating palms-up curls.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=100s',
+          timestampLabel: '1:40'
+        },
+        {
+          id: 'tg-arm-hr-kneeling-tricep-ext',
+          name: 'Kneeling Alternating Triceps Extension Kickbacks [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym',
+          description: 'Kneel facing tower, lock shoulder blades in place and kick handles back via pure elbow extension.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=220s',
+          timestampLabel: '3:40'
+        },
+        {
+          id: 'tg-arm-hr-negative-curl',
+          name: 'Tempo & Negative Focused Weighted Biceps Curls [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym & Weight Bar',
+          description: 'Perform explosive squeeze upward followed by a controlled 3-second negative eccentric lowering.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=344s',
+          timestampLabel: '5:44'
+        },
+        {
+          id: 'tg-arm-hr-staggered-kickback',
+          name: 'Single-Arm Staggered Stance Triceps Kickback [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym',
+          description: 'Staggered leg stance on glideboard, isolate single arm triceps press with high cable load.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=465s',
+          timestampLabel: '7:45'
+        },
+        {
+          id: 'tg-arm-hr-x3-bar-curl',
+          name: 'X3 Bar Inverted Weighted Biceps Curl Drop-Sets [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym & Press Bar',
+          description: 'Attach straight press bar to cables, execute heavy loaded curls with forced reps and drop-sets.',
+          defaultLevel: 'Level 6',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=1000s',
+          timestampLabel: '10:00'
+        },
+        {
+          id: 'tg-arm-hr-strap-tricep-ext',
+          name: 'Rope / Strap Neutral Grip Triceps Extensions [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym & Straps',
+          description: 'Use triceps rope or long nylon straps to drive handles down in a neutral wrist path.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=780s',
+          timestampLabel: '13:00'
+        },
+        {
+          id: 'tg-arm-hr-hammer-curl',
+          name: 'High-Kneeling Neutral Grip Hammer Curls [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym & Weight Bar',
+          description: 'High-kneeling stance facing away, drive neutral-grip cables upward targeting brachialis and forearms.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=910s',
+          timestampLabel: '15:10'
+        },
+        {
+          id: 'tg-arm-hr-lying-strap-tricep',
+          name: 'Lying Neutral Strap Triceps Extensions [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym & Straps',
+          description: 'Lie supine, extend neutral-grip straps down along thighs using strict triceps contraction.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=1020s',
+          timestampLabel: '17:00'
+        },
+        {
+          id: 'tg-arm-hr-preacher-sim',
+          name: 'Glideboard Low Preacher Curl Simulation [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym',
+          description: 'Lie low on glideboard to eliminate shoulder momentum and isolate peak biceps contraction.',
+          defaultLevel: 'Level 4',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=1120s',
+          timestampLabel: '18:40'
+        },
+        {
+          id: 'tg-arm-hr-bar-overhead-tricep',
+          name: 'Barbell Lying Triceps Over-Head Extension [Hybrid Resistance]',
+          category: 'ARMS',
+          equipment: 'Total Gym & Press Bar',
+          description: 'Lie face up, perform skullcrusher-style overhead triceps extensions using straight bar attachment.',
+          defaultLevel: 'Level 5',
+          videoUrl: 'https://youtu.be/MboA9Hzneg4?t=1200s',
+          timestampLabel: '20:00'
+        }
+      ];
+
+      function getAudioContext() {
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) return null;
+        if (!window.__myorepAudioContext) {
+          window.__myorepAudioContext = new AudioCtor();
+        }
+        return window.__myorepAudioContext;
+      }
+
+      function playChime(freq = 440, type = 'sine', duration = 0.15) {
+        try {
+          const ctx = getAudioContext();
+          if (!ctx) return;
+          if (ctx.state === 'suspended') ctx.resume();
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          gain.gain.setValueAtTime(0.07, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + duration);
+        } catch (e) {}
+      }
+
+      function playGoChime() {
+        playChime(587.33, 'triangle', 0.2);
+        setTimeout(() => playChime(880, 'sine', 0.4), 150);
+      }
+
+      function App() {
+        const [activeTab, setActiveTab] = useState('workout');
+        
+        const [userBodyWeightStr, setUserBodyWeightStr] = useState('180');
+        const [selectedMuscle, setSelectedMuscle] = useState('ALL');
+        const [selectedExerciseId, setSelectedExerciseId] = useState(EXERCISES[0].id);
+        const [tgLevel, setTgLevel] = useState(5);
+        const [selectedBand, setSelectedBand] = useState('none');
+
+        const [activationReps, setActivationReps] = useState(12);
+        const [activationDone, setActivationDone] = useState(false);
+        const [miniSets, setMiniSets] = useState([]);
+        const [selectedReps, setSelectedReps] = useState(null);
+        const [restTimer, setRestTimer] = useState(0);
+        const [isResting, setIsResting] = useState(false);
+        const [isCompleted, setIsCompleted] = useState(false);
+        const [history, setHistory] = useState([]);
+
+        const timerRef = useRef(null);
+
+        const parsedBodyWeight = parseFloat(userBodyWeightStr) || 0;
+
+        const filteredExercises = selectedMuscle === 'ALL' 
+          ? EXERCISES 
+          : EXERCISES.filter(ex => ex.category === selectedMuscle);
+
+        const exercise = EXERCISES.find((item) => item.id === selectedExerciseId) || filteredExercises[0] || EXERCISES[0];
+        const selectedBandObj = BAND_OPTIONS.find(b => b.id === selectedBand) || BAND_OPTIONS[0];
+
+        // Calculated effective working load
+        const activeLvlObj = TG_FIT_LEVELS.find(l => l.level === tgLevel) || TG_FIT_LEVELS[4];
+        const currentGlideboardLoad = Math.round(parsedBodyWeight * activeLvlObj.bodyWeightPct);
+        const currentTotalWorkingLoad = currentGlideboardLoad + selectedBandObj.tension;
+
+        useEffect(() => {
+          try {
+            const loaded = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (Array.isArray(loaded)) setHistory(loaded);
+          } catch (e) {
+            console.warn('Failed to load workout history', e);
+          }
+        }, []);
+
+        useEffect(() => {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+          } catch (e) {
+            console.warn('Failed to save workout history', e);
+          }
+        }, [history]);
+
+        useEffect(() => {
+          return () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+          };
+        }, []);
+
+        useEffect(() => {
+          if (!isResting) return;
+
+          if (restTimer <= 0) {
+            setIsResting(false);
+            setRestTimer(0);
+            playGoChime();
+            return;
+          }
+
+          timerRef.current = setTimeout(() => {
+            setRestTimer((prev) => prev - 1);
+          }, 1000);
+
+          return () => {
+            if (timerRef.current) {
+              clearTimeout(timerRef.current);
+              timerRef.current = null;
+            }
+          };
+        }, [isResting, restTimer]);
+
+        useEffect(() => {
+          if (isResting && restTimer > 0 && restTimer % 3 === 0) {
+            playChime(350, 'sine', 0.1);
+          }
+        }, [isResting, restTimer]);
+
+        const resetSession = () => {
+          setMiniSets([]);
+          setSelectedReps(null);
+          setActivationReps(12);
+          setActivationDone(false);
+          setIsResting(false);
+          setRestTimer(0);
+          setIsCompleted(false);
+        };
+
+        const handleMuscleChange = (group) => {
+          setSelectedMuscle(group);
+          const firstInGroup = group === 'ALL' ? EXERCISES[0] : EXERCISES.find(ex => ex.category === group);
+          if (firstInGroup) {
+            setSelectedExerciseId(firstInGroup.id);
+          }
+          resetSession();
+        };
+
+        const handleSelectExercise = (id) => {
+          setSelectedExerciseId(id);
+          resetSession();
+        };
+
+        const handleStartActivationRest = () => {
+          setActivationDone(true);
+          setRestTimer(15);
+          setIsResting(true);
+          playChime(440, 'sine', 0.15);
+        };
+
+        const handleSelectCard = (val) => {
+          if (isResting || isCompleted || !activationDone) return;
+          setSelectedReps(val);
+        };
+
+        const handleConfirmAndStartRest = () => {
+          if (selectedReps === null || isResting || isCompleted) return;
+
+          const repsToRecord = selectedReps;
+          const nextMiniSets = [...miniSets, repsToRecord];
+          setMiniSets(nextMiniSets);
+          setSelectedReps(null);
+
+          if (repsToRecord < 3 || nextMiniSets.length >= 5) {
+            setIsCompleted(true);
+            setIsResting(false);
+            setRestTimer(0);
+            playGoChime();
+            return;
+          }
+
+          setRestTimer(15);
+          setIsResting(true);
+          playChime(440, 'sine', 0.15);
+        };
+
+        const handleSkipRest = () => {
+          setIsResting(false);
+          setRestTimer(0);
+          playGoChime();
+        };
+
+        const saveWorkout = () => {
+          const newEntry = {
+            id: Date.now(),
+            date: new Date().toLocaleString(),
+            exercise: exercise.name,
+            equipment: exercise.equipment,
+            setting: `TG Level ${tgLevel} + Band: ${selectedBandObj.label}`,
+            workingLoad: `${currentTotalWorkingLoad} lbs`,
+            activationReps,
+            miniSets,
+            totalReps: activationReps + miniSets.reduce((sum, value) => sum + value, 0)
+          };
+
+          setHistory((previous) => [newEntry, ...previous]);
+          resetSession();
+        };
+
+        const currentBreath = restTimer <= 0 ? 1 : Math.min(5, Math.ceil((15 - restTimer) / 3) || 1);
+
+        return (
+          <div className="max-w-md mx-auto p-4 pb-20">
+            {/* Header with KineticForge Branding */}
+            <header className="mb-6 border-b border-brand-surface pb-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-2xl font-black tracking-tight text-brand-cyan">KINETICFORGE</h1>
+                  <p className="text-xs text-brand-muted">Total Gym FIT + Serious Steel Engine</p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded bg-slate-900 text-brand-amber border border-brand-amber/40">
+                  RPE 8 Protocol
+                </span>
+              </div>
+            </header>
+
+            {/* Navigation Tabs */}
+            <div className="flex gap-2 mb-6 bg-brand-surface p-1 rounded-lg border border-slate-700/50">
+              <button
+                type="button"
+                onClick={() => setActiveTab('workout')}
+                className={`flex-1 py-2 text-xs font-black rounded-md transition-all ${activeTab === 'workout' ? 'bg-brand-cyan text-brand-base shadow-md' : 'text-brand-muted hover:text-brand-text'}`}
+              >
+                WORKOUT
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('history')}
+                className={`flex-1 py-2 text-xs font-black rounded-md transition-all ${activeTab === 'history' ? 'bg-brand-cyan text-brand-base shadow-md' : 'text-brand-muted hover:text-brand-text'}`}
+              >
+                HISTORY ({history.length})
+              </button>
+            </div>
+
+            {activeTab === 'workout' ? (
+              <div className="space-y-6">
+                
+                {/* Step 1: Muscle Group Selection */}
+                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50 space-y-3">
+                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">
+                    Step 1: Select Target Muscle Group
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MUSCLE_GROUPS.map((group) => (
+                      <button
+                        key={group}
+                        type="button"
+                        onClick={() => handleMuscleChange(group)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                          selectedMuscle === group
+                            ? 'bg-brand-cyan text-brand-base shadow-md'
+                            : 'bg-brand-base text-brand-muted border border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        {group}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Step 2: Visual Grid Picker with YouTube Video Thumbnails */}
+                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">
+                      Step 2: Choose Exercise Movement
+                    </label>
+                    <span className="text-[11px] font-bold text-brand-cyan">
+                      {filteredExercises.length} Available
+                    </span>
+                  </div>
+
+                  {/* 2-Column Scrollable Thumbnail Grid */}
+                  <div className="grid grid-cols-2 gap-2.5 max-h-72 overflow-y-auto p-1 pr-1.5">
+                    {filteredExercises.map((ex) => {
+                      const vId = getYouTubeId(ex.videoUrl);
+                      const thumbUrl = vId ? `https://img.youtube.com/vi/${vId}/hqdefault.jpg` : '';
+                      const isSelected = ex.id === exercise.id;
+
+                      return (
+                        <div
+                          key={ex.id}
+                          onClick={() => handleSelectExercise(ex.id)}
+                          className={`cursor-pointer rounded-xl border overflow-hidden p-2 transition-all flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-brand-base border-brand-cyan ring-2 ring-brand-cyan/60 shadow-lg shadow-cyan-950/40'
+                              : 'bg-brand-base border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="relative rounded-lg overflow-hidden mb-2 bg-slate-900 aspect-video">
+                            {thumbUrl ? (
+                              <img
+                                src={thumbUrl}
+                                alt={ex.name}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs font-bold">
+                                No Video
+                              </div>
+                            )}
+
+                            {ex.timestampLabel && (
+                              <span className="absolute bottom-1 right-1 bg-slate-950/90 text-brand-cyan text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border border-slate-800">
+                                {ex.timestampLabel}
+                              </span>
+                            )}
+
+                            {isSelected && (
+                              <div className="absolute top-1 left-1 bg-brand-cyan text-brand-base text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
+                                Active
+                              </div>
+                            )}
+                          </div>
+
+                          <h4 className={`text-xs font-bold line-clamp-2 leading-tight ${isSelected ? 'text-brand-cyan' : 'text-brand-text'}`}>
+                            {ex.name}
+                          </h4>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Active Exercise Description & Direct Video Guide Link */}
+                  <div className="bg-brand-base p-3 rounded-lg border border-slate-800 space-y-2">
+                    <p className="text-xs text-brand-muted italic">
+                      💡 {exercise.description}
+                    </p>
+
+                    {exercise.videoUrl && (
+                      <a
+                        href={exercise.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-cyan hover:underline bg-brand-surface px-2.5 py-1.5 rounded border border-slate-700 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5 fill-current text-rose-500" viewBox="0 0 24 24">
+                          <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                        </svg>
+                        <span>Watch Video Form Guide ({exercise.timestampLabel}) ➔</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* STEP 3: Configure Resistance Load & Incline vs Band Load Chart */}
+                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50 space-y-4">
+                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">
+                    Step 3: Configure Resistance Load & Intersect Graph
+                  </label>
+
+                  {/* Body weight calibration */}
+                  <div className="flex justify-between items-center bg-brand-base p-2.5 rounded-lg border border-slate-800">
+                    <span className="text-xs font-bold text-brand-muted">User Body Weight:</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={userBodyWeightStr}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d*$/.test(val)) {
+                            setUserBodyWeightStr(val);
+                          }
+                        }}
+                        placeholder="180"
+                        className="w-16 bg-slate-900 border border-slate-700 text-center rounded text-xs font-mono font-bold text-brand-cyan p-1 focus:outline-none focus:border-brand-cyan"
+                      />
+                      <span className="text-xs text-brand-muted font-bold">lbs</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-xs font-bold text-brand-text">Total Gym FIT Incline Level:</span>
+                      <span className="text-xs font-mono font-black text-brand-amber">
+                        Level {tgLevel} ({Math.round(activeLvlObj.bodyWeightPct * 100)}% BW = {currentGlideboardLoad} lbs)
+                      </span>
+                    </div>
+                    <select
+                      value={tgLevel}
+                      onChange={(e) => setTgLevel(Number(e.target.value))}
+                      className="w-full bg-brand-base border border-slate-700 rounded-lg p-2 text-xs font-bold text-brand-text"
+                    >
+                      {TG_FIT_LEVELS.map((lvl) => (
+                        <option key={lvl.level} value={lvl.level}>
+                          Level {lvl.level} ({lvl.angle} Incline - {Math.round(lvl.bodyWeightPct * 100)}% BW)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-xs font-bold text-brand-text">Serious Steel Band Overlay:</span>
+                      <span className="text-xs font-mono font-black text-brand-cyan">
+                        +{selectedBandObj.tension} lbs Peak Tension
+                      </span>
+                    </div>
+                    <select
+                      value={selectedBand}
+                      onChange={(e) => setSelectedBand(e.target.value)}
+                      className="w-full bg-brand-base border border-slate-700 rounded-lg p-2 text-xs font-bold text-brand-text"
+                    >
+                      {BAND_OPTIONS.map((b) => (
+                        <option key={b.id} value={b.id}>{b.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Effective Lifted Resistance Intersection Graph */}
+                  <div className="bg-brand-base p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div className="flex justify-between items-center text-[11px] font-mono">
+                      <span className="text-brand-muted uppercase font-bold">Effective Load Lifted Graph</span>
+                      <span className="text-brand-cyan font-black text-xs">Total: {currentTotalWorkingLoad} lbs</span>
+                    </div>
+
+                    <div className="relative h-28 w-full flex items-end justify-between pt-4 px-1 border-b border-slate-800 gap-1">
+                      {TG_FIT_LEVELS.map((l) => {
+                        const boardLoad = Math.round(parsedBodyWeight * l.bodyWeightPct);
+                        const totalLoad = boardLoad + selectedBandObj.tension;
+                        const isSelected = l.level === tgLevel;
+                        const barHeightPct = Math.min(100, Math.max(15, (totalLoad / 300) * 100));
+
+                        return (
+                          <div
+                            key={l.level}
+                            onClick={() => setTgLevel(l.level)}
+                            className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group"
+                          >
+                            <span className="text-[9px] font-mono mb-1 text-slate-400 group-hover:text-brand-cyan">
+                              {totalLoad}
+                            </span>
+                            <div
+                              className={`w-full rounded-t transition-all duration-300 ${
+                                isSelected
+                                  ? 'bg-brand-cyan shadow-md shadow-cyan-500/30'
+                                  : 'bg-slate-800 hover:bg-slate-700'
+                              }`}
+                              style={{ height: `${barHeightPct}%` }}
+                            />
+                            <span className={`text-[9px] font-mono mt-1 ${isSelected ? 'text-brand-cyan font-bold' : 'text-slate-500'}`}>
+                              L{l.level}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-between items-center text-[10px] text-brand-muted font-mono pt-1">
+                      <span>Glideboard ({currentGlideboardLoad} lbs)</span>
+                      <span>+</span>
+                      <span>Band Overlay ({selectedBandObj.tension} lbs)</span>
+                      <span>=</span>
+                      <span className="text-brand-cyan font-bold">{currentTotalWorkingLoad} lbs</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 4: Activation Set (RPE 8) */}
+                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-brand-muted uppercase tracking-wider">
+                      Step 4: Activation Set (RPE 8)
+                    </label>
+                    <span className="text-xs text-brand-muted">Target: 12-15 Reps</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={activationReps}
+                      disabled={activationDone}
+                      onChange={(e) => setActivationReps(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-20 bg-brand-base border border-slate-700 text-center rounded-lg p-2 font-black text-lg text-brand-text disabled:opacity-50"
+                    />
+                    <span className="text-xs text-brand-muted flex-1">Pre-exhausts slow-twitch fibers before mini-sets.</span>
+                  </div>
+
+                  {!activationDone && (
+                    <button
+                      type="button"
+                      onClick={handleStartActivationRest}
+                      className="w-full py-2.5 bg-brand-cyan hover:bg-cyan-400 text-brand-base font-black text-xs rounded-lg transition-all uppercase tracking-wider shadow-md shadow-cyan-950/20"
+                    >
+                      Complete Activation & Start 5-Breath Rest ➔
+                    </button>
+                  )}
+                </div>
+
+                {/* Rest Timer */}
+                {isResting && (
+                  <div className="bg-brand-surface border-2 border-brand-cyan p-5 rounded-2xl text-center space-y-3 shadow-lg shadow-cyan-950/40">
+                    <span className="text-xs font-black uppercase text-brand-cyan tracking-widest block">
+                      5-BREATH REST PAUSE
+                    </span>
+                    <div className="relative flex items-center justify-center my-2 h-20">
+                      <div className="w-20 h-20 rounded-full border-4 border-brand-cyan/30 animate-ping absolute" />
+                      <div className="w-16 h-16 rounded-full bg-brand-base border-2 border-brand-cyan flex flex-col items-center justify-center z-10">
+                        <span className="text-xl font-mono font-black text-brand-cyan">{restTimer}s</span>
+                        <span className="text-[9px] text-brand-muted font-bold uppercase">Breath {currentBreath}/5</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs text-brand-muted">Resting... prepare for next mini-set.</span>
+                      <button
+                        type="button"
+                        onClick={handleSkipRest}
+                        className="px-3 py-1 bg-brand-base hover:bg-slate-800 text-brand-text text-xs font-bold rounded border border-slate-700"
+                      >
+                        Skip Rest ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 5: Cluster Mini-Sets */}
+                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50">
+                  <h3 className="text-xs font-bold text-brand-muted mb-3 uppercase tracking-wider">
+                    Step 5: Cluster Mini-Sets (3–5 Reps)
+                  </h3>
+
+                  <div className="grid grid-cols-5 gap-2 mb-4">
+                    {[0, 1, 2, 3, 4].map((idx) => (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-lg border text-center transition-all ${
+                          miniSets[idx] !== undefined
+                            ? miniSets[idx] < 3
+                              ? 'bg-rose-950/80 border-rose-700 text-rose-300'
+                              : 'bg-slate-900 border-brand-cyan text-brand-cyan'
+                            : 'bg-brand-base border-slate-800 text-slate-600'
+                        }`}
+                      >
+                        <div className="text-[10px] font-bold text-slate-500 mb-1">M{idx + 1}</div>
+                        <div className="text-base font-black font-mono">{miniSets[idx] !== undefined ? miniSets[idx] : '-'}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {!activationDone && (
+                    <p className="text-xs text-brand-amber text-center font-semibold bg-amber-950/30 p-2 rounded border border-amber-800/40">
+                      ⚠️ Complete activation set in Step 4 above to unlock mini-sets.
+                    </p>
+                  )}
+
+                  {activationDone && !isCompleted && !isResting && (
+                    <div className="space-y-3 pt-2 border-t border-slate-800">
+                      <label className="block text-xs text-brand-text font-bold mb-2">
+                        Select Reps Completed for Mini-Set #{miniSets.length + 1}:
+                      </label>
+
+                      <div className="space-y-2">
+                        {[
+                          { reps: 5, label: '5 Reps (Target Goal)' },
+                          { reps: 4, label: '4 Reps' },
+                          { reps: 3, label: '3 Reps' },
+                          { reps: 2, label: '2 Reps (Triggers Exercise Cutoff)' },
+                          { reps: 1, label: '1 Rep (Triggers Exercise Cutoff)' }
+                        ].map(({ reps, label }) => {
+                          const isSelected = selectedReps === reps;
+                          return (
+                            <div
+                              key={reps}
+                              onClick={() => handleSelectCard(reps)}
+                              className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-brand-base border-brand-cyan text-brand-text ring-1 ring-brand-cyan'
+                                  : 'bg-brand-base border-slate-800 hover:border-slate-700 text-brand-muted'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-sm ${
+                                    isSelected
+                                      ? 'bg-brand-cyan text-brand-base'
+                                      : 'bg-slate-800 text-brand-muted'
+                                  }`}
+                                >
+                                  {reps}
+                                </div>
+                                <span className="text-xs font-bold">{label}</span>
+                              </div>
+
+                              {isSelected && (
+                                <span className="text-xs font-black text-brand-cyan uppercase tracking-wider bg-slate-900 px-2.5 py-1 rounded border border-brand-cyan/40">
+                                  ✓ Selected
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {selectedReps !== null ? (
+                        <button
+                          type="button"
+                          onClick={handleConfirmAndStartRest}
+                          className="w-full py-3 bg-brand-cyan hover:bg-cyan-400 text-brand-base font-black text-xs rounded-xl transition-all uppercase tracking-wider shadow-lg shadow-cyan-950/30 mt-4"
+                        >
+                          {selectedReps >= 3
+                            ? `Confirm ${selectedReps} Reps & Start 5-Breath Rest ➔`
+                            : `Confirm ${selectedReps} Reps & Complete Exercise ➔`}
+                        </button>
+                      ) : (
+                        <p className="text-xs text-brand-muted text-center italic py-1">
+                          Tap a card above to select your completed reps.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {isCompleted && (
+                    <div className="mt-4 bg-brand-base border border-brand-cyan/60 p-4 rounded-lg text-center">
+                      <span className="text-xs font-black text-brand-cyan block mb-1">✓ EXERCISE COMPLETE</span>
+                      <p className="text-xs text-brand-muted">Auto-regulation trigger reached. Maximum muscle fiber recruitment achieved.</p>
+                      <button
+                        type="button"
+                        onClick={saveWorkout}
+                        className="mt-3 w-full py-2.5 bg-brand-cyan text-brand-base font-black text-xs rounded-lg hover:bg-cyan-400 transition-colors uppercase tracking-wider"
+                      >
+                        SAVE TO HISTORY LOG
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {history.length === 0 ? (
+                  <div className="text-center py-12 bg-brand-surface rounded-xl border border-slate-700/50">
+                    <p className="text-brand-muted text-sm font-semibold">No saved workouts yet.</p>
+                    <p className="text-xs text-slate-500 mt-1">Complete a Myo-Rep session to view history.</p>
+                  </div>
+                ) : (
+                  history.map((log) => (
+                    <div key={log.id} className="bg-brand-surface p-4 rounded-xl border border-slate-700/50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-bold text-sm text-brand-text">{log.exercise}</h4>
+                          <span className="text-xs text-brand-muted">{log.date}</span>
+                        </div>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-brand-base text-brand-cyan border border-slate-800">
+                          {log.workingLoad || log.setting}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
+                        <span className="text-brand-muted">Activation: <strong className="text-brand-text">{log.activationReps} reps</strong></span>
+                        <span className="text-brand-muted">Mini-Sets: <strong className="text-brand-cyan font-mono">[{log.miniSets.join(', ')}]</strong></span>
+                        <span className="text-brand-muted">Total: <strong className="text-brand-text font-mono">{log.totalReps}</strong></span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
