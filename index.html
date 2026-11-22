@@ -9,7 +9,9 @@
     <!-- Google Fonts for BodyEngine typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- BodyEngine Custom Brand Theme Extensions -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+
+    <!-- BodyEngine Custom Brand Theme Extensions (Volt Stadium) -->
     <script>
       tailwind.config = {
         theme: {
@@ -47,19 +49,89 @@
 
       const MUSCLE_GROUPS = ['ALL', 'TOTAL BODY RELEASE', 'HIP MOBILITY', 'BACK MOBILITY', 'CHEST', 'BACK', 'LEGS', 'SHOULDERS', 'ARMS'];
 
-      const TG_FIT_LEVELS = [
-        { level: 1, angle: '5.2°', bodyWeightPct: 0.38 },
-        { level: 2, angle: '8.0°', bodyWeightPct: 0.45 },
-        { level: 3, angle: '10.9°', bodyWeightPct: 0.52 },
-        { level: 4, angle: '13.8°', bodyWeightPct: 0.58 },
-        { level: 5, angle: '16.7°', bodyWeightPct: 0.63 },
-        { level: 6, angle: '19.6°', bodyWeightPct: 0.68 },
-        { level: 7, angle: '22.6°', bodyWeightPct: 0.72 },
-        { level: 8, angle: '25.8°', bodyWeightPct: 0.76 }
-      ];
+      const TRAINER_MODELS = {
+        'tg-fit': {
+          id: 'tg-fit',
+          name: 'Total Gym FIT / GTS / Encompass (8 Levels)',
+          levels: [
+            { level: 1, angle: '5.2°', bodyWeightPct: 0.38 },
+            { level: 2, angle: '8.0°', bodyWeightPct: 0.45 },
+            { level: 3, angle: '10.9°', bodyWeightPct: 0.52 },
+            { level: 4, angle: '13.8°', bodyWeightPct: 0.58 },
+            { level: 5, angle: '16.7°', bodyWeightPct: 0.63 },
+            { level: 6, angle: '19.6°', bodyWeightPct: 0.68 },
+            { level: 7, angle: '22.6°', bodyWeightPct: 0.72 },
+            { level: 8, angle: '25.8°', bodyWeightPct: 0.76 }
+          ]
+        },
+        'tg-xls': {
+          id: 'tg-xls',
+          name: 'Total Gym XLS / Supreme (6 Levels)',
+          levels: [
+            { level: 1, angle: '6.0°', bodyWeightPct: 0.35 },
+            { level: 2, angle: '9.5°', bodyWeightPct: 0.42 },
+            { level: 3, angle: '13.0°', bodyWeightPct: 0.48 },
+            { level: 4, angle: '16.5°', bodyWeightPct: 0.54 },
+            { level: 5, angle: '20.0°', bodyWeightPct: 0.60 },
+            { level: 6, angle: '23.5°', bodyWeightPct: 0.65 }
+          ]
+        },
+        'tg-apex': {
+          id: 'tg-apex',
+          name: 'Total Gym APEX G1 / G3 / G5 (10 Levels)',
+          levels: [
+            { level: 1, angle: '5.0°', bodyWeightPct: 0.32 },
+            { level: 2, angle: '7.0°', bodyWeightPct: 0.36 },
+            { level: 3, angle: '9.0°', bodyWeightPct: 0.40 },
+            { level: 4, angle: '11.0°', bodyWeightPct: 0.44 },
+            { level: 5, angle: '13.0°', bodyWeightPct: 0.48 },
+            { level: 6, angle: '15.0°', bodyWeightPct: 0.52 },
+            { level: 7, angle: '17.0°', bodyWeightPct: 0.56 },
+            { level: 8, angle: '19.0°', bodyWeightPct: 0.60 },
+            { level: 9, angle: '21.0°', bodyWeightPct: 0.64 },
+            { level: 10, angle: '23.0°', bodyWeightPct: 0.68 }
+          ]
+        },
+        'weider-ubw': {
+          id: 'weider-ubw',
+          name: 'Weider Ultimate Body Works (7 Levels)',
+          levels: [
+            { level: 1, angle: '6.5°', bodyWeightPct: 0.35 },
+            { level: 2, angle: '9.5°', bodyWeightPct: 0.41 },
+            { level: 3, angle: '12.5°', bodyWeightPct: 0.46 },
+            { level: 4, angle: '15.5°', bodyWeightPct: 0.51 },
+            { level: 5, angle: '18.5°', bodyWeightPct: 0.56 },
+            { level: 6, angle: '21.5°', bodyWeightPct: 0.61 },
+            { level: 7, angle: '24.5°', bodyWeightPct: 0.65 }
+          ]
+        },
+        'gr8flex': {
+          id: 'gr8flex',
+          name: 'GR8FLEX / VigorFit (12 Levels)',
+          levels: [
+            { level: 1, angle: '4.5°', bodyWeightPct: 0.30 },
+            { level: 2, angle: '6.5°', bodyWeightPct: 0.34 },
+            { level: 3, angle: '8.5°', bodyWeightPct: 0.38 },
+            { level: 4, angle: '10.5°', bodyWeightPct: 0.42 },
+            { level: 5, angle: '12.5°', bodyWeightPct: 0.46 },
+            { level: 6, angle: '14.5°', bodyWeightPct: 0.50 },
+            { level: 7, angle: '16.5°', bodyWeightPct: 0.54 },
+            { level: 8, angle: '18.5°', bodyWeightPct: 0.58 },
+            { level: 9, angle: '20.5°', bodyWeightPct: 0.61 },
+            { level: 10, angle: '22.5°', bodyWeightPct: 0.64 },
+            { level: 11, angle: '24.5°', bodyWeightPct: 0.67 },
+            { level: 12, angle: '26.5°', bodyWeightPct: 0.70 }
+          ]
+        },
+        'custom': {
+          id: 'custom',
+          name: 'Custom Trainer (Manual % / Tower Height)',
+          levels: []
+        }
+      };
 
       const BAND_OPTIONS = [
-        { id: 'none', label: 'None (Total Gym Only)', tension: 0 },
+        { id: 'none', label: 'None (Machine Only)', tension: 0 },
         { id: 'orange', label: '#0 Orange (2–15 lbs)', tension: 15 },
         { id: 'purple', label: '#1 Purple (5–35 lbs)', tension: 35 },
         { id: 'red', label: '#2 Red (10–50 lbs)', tension: 50 },
@@ -1427,6 +1499,8 @@
         const [activeTab, setActiveTab] = useState('workout');
         
         const [userBodyWeightStr, setUserBodyWeightStr] = useState('180');
+        const [selectedModelId, setSelectedModelId] = useState('tg-fit');
+        const [customPctStr, setCustomPctStr] = useState('55');
         const [selectedMuscle, setSelectedMuscle] = useState('ALL');
         const [selectedExerciseId, setSelectedExerciseId] = useState(EXERCISES[0].id);
         const [tgLevel, setTgLevel] = useState(5);
@@ -1452,10 +1526,21 @@
         const exercise = EXERCISES.find((item) => item.id === selectedExerciseId) || filteredExercises[0] || EXERCISES[0];
         const selectedBandObj = BAND_OPTIONS.find(b => b.id === selectedBand) || BAND_OPTIONS[0];
 
-        // Calculated effective working load
-        const activeLvlObj = TG_FIT_LEVELS.find(l => l.level === tgLevel) || TG_FIT_LEVELS[4];
+        // Active trainer model & dynamic effective load calculation
+        const activeModel = TRAINER_MODELS[selectedModelId] || TRAINER_MODELS['tg-fit'];
+        const isCustomModel = selectedModelId === 'custom';
+        const parsedCustomPct = Math.min(95, Math.max(5, parseFloat(customPctStr) || 0)) / 100;
+
+        const activeLvlObj = !isCustomModel
+          ? (activeModel.levels.find(l => l.level === tgLevel) || activeModel.levels[activeModel.levels.length - 1])
+          : { level: 'Custom', angle: 'Manual', bodyWeightPct: parsedCustomPct };
+
         const currentGlideboardLoad = Math.round(parsedBodyWeight * activeLvlObj.bodyWeightPct);
         const currentTotalWorkingLoad = currentGlideboardLoad + selectedBandObj.tension;
+
+        const maxChartLoad = !isCustomModel
+          ? Math.max(250, Math.round(parsedBodyWeight * activeModel.levels[activeModel.levels.length - 1].bodyWeightPct) + selectedBandObj.tension)
+          : 300;
 
         useEffect(() => {
           try {
@@ -1518,6 +1603,14 @@
           setIsCompleted(false);
         };
 
+        const handleModelChange = (newModelId) => {
+          setSelectedModelId(newModelId);
+          if (newModelId !== 'custom') {
+            const maxLvl = TRAINER_MODELS[newModelId].levels.length;
+            if (tgLevel > maxLvl) setTgLevel(maxLvl);
+          }
+        };
+
         const handleMuscleChange = (group) => {
           setSelectedMuscle(group);
           const firstInGroup = group === 'ALL' ? EXERCISES[0] : EXERCISES.find(ex => ex.category === group);
@@ -1572,12 +1665,15 @@
         };
 
         const saveWorkout = () => {
+          const shortModelName = activeModel.name.split(' (')[0];
           const newEntry = {
             id: Date.now(),
             date: new Date().toLocaleString(),
             exercise: exercise.name,
             equipment: exercise.equipment,
-            setting: `TG Level ${tgLevel} + Band: ${selectedBandObj.label}`,
+            setting: isCustomModel
+              ? `${shortModelName} (${Math.round(parsedCustomPct * 100)}% BW) + ${selectedBandObj.label}`
+              : `${shortModelName} L${tgLevel} + ${selectedBandObj.label}`,
             workingLoad: `${currentTotalWorkingLoad} lbs`,
             activationReps,
             miniSets,
@@ -1597,16 +1693,16 @@
               <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-2xl font-black tracking-tight text-brand-cyan">BODYENGINE</h1>
-                  <p className="text-xs text-brand-muted">Total Gym FIT + Serious Steel Engine</p>
+                  <p className="text-xs text-brand-muted">Sliding Bench + Loop Band Protocol Engine</p>
                 </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded bg-slate-900 text-brand-amber border border-brand-amber/40">
+                <span className="text-xs font-bold px-2.5 py-1 rounded bg-neutral-900 text-brand-amber border border-brand-amber/40">
                   RPE 8 Protocol
                 </span>
               </div>
             </header>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-2 mb-6 bg-brand-surface p-1 rounded-lg border border-slate-700/50">
+            <div className="flex gap-2 mb-6 bg-brand-surface p-1 rounded-lg border border-neutral-800">
               <button
                 type="button"
                 onClick={() => setActiveTab('workout')}
@@ -1627,7 +1723,7 @@
               <div className="space-y-6">
                 
                 {/* Step 1: Muscle Group Selection */}
-                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50 space-y-3">
+                <div className="bg-brand-surface p-4 rounded-xl border border-neutral-800 space-y-3">
                   <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">
                     Step 1: Select Target Muscle Group
                   </label>
@@ -1640,7 +1736,7 @@
                         className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
                           selectedMuscle === group
                             ? 'bg-brand-cyan text-brand-base shadow-md'
-                            : 'bg-brand-base text-brand-muted border border-slate-800 hover:border-slate-700'
+                            : 'bg-brand-base text-brand-muted border border-neutral-800 hover:border-neutral-700'
                         }`}
                       >
                         {group}
@@ -1650,7 +1746,7 @@
                 </div>
 
                 {/* Step 2: Visual Grid Picker with YouTube Video Thumbnails */}
-                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50 space-y-3">
+                <div className="bg-brand-surface p-4 rounded-xl border border-neutral-800 space-y-3">
                   <div className="flex justify-between items-center">
                     <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">
                       Step 2: Choose Exercise Movement
@@ -1673,11 +1769,11 @@
                           onClick={() => handleSelectExercise(ex.id)}
                           className={`cursor-pointer rounded-xl border overflow-hidden p-2 transition-all flex flex-col justify-between ${
                             isSelected
-                              ? 'bg-brand-base border-brand-cyan ring-2 ring-brand-cyan/60 shadow-lg shadow-cyan-950/40'
-                              : 'bg-brand-base border-slate-800 hover:border-slate-700'
+                              ? 'bg-brand-base border-brand-cyan ring-2 ring-brand-cyan/60 shadow-lg shadow-lime-500/10'
+                              : 'bg-brand-base border-neutral-800 hover:border-neutral-700'
                           }`}
                         >
-                          <div className="relative rounded-lg overflow-hidden mb-2 bg-slate-900 aspect-video">
+                          <div className="relative rounded-lg overflow-hidden mb-2 bg-neutral-900 aspect-video">
                             {thumbUrl ? (
                               <img
                                 src={thumbUrl}
@@ -1686,13 +1782,13 @@
                                 loading="lazy"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs font-bold">
+                              <div className="w-full h-full flex items-center justify-center text-neutral-600 text-xs font-bold">
                                 No Video
                               </div>
                             )}
 
                             {ex.timestampLabel && (
-                              <span className="absolute bottom-1 right-1 bg-slate-950/90 text-brand-cyan text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border border-slate-800">
+                              <span className="absolute bottom-1 right-1 bg-neutral-950/90 text-brand-cyan text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border border-neutral-800">
                                 {ex.timestampLabel}
                               </span>
                             )}
@@ -1713,7 +1809,7 @@
                   </div>
 
                   {/* Active Exercise Description & Direct Video Guide Link */}
-                  <div className="bg-brand-base p-3 rounded-lg border border-slate-800 space-y-2">
+                  <div className="bg-brand-base p-3 rounded-lg border border-neutral-800 space-y-2">
                     <p className="text-xs text-brand-muted italic">
                       💡 {exercise.description}
                     </p>
@@ -1723,7 +1819,7 @@
                         href={exercise.videoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-cyan hover:underline bg-brand-surface px-2.5 py-1.5 rounded border border-slate-700 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-cyan hover:underline bg-brand-surface px-2.5 py-1.5 rounded border border-neutral-700 transition-colors"
                       >
                         <svg className="w-3.5 h-3.5 fill-current text-rose-500" viewBox="0 0 24 24">
                           <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
@@ -1734,14 +1830,35 @@
                   </div>
                 </div>
 
-                {/* STEP 3: Configure Resistance Load & Incline vs Band Load Chart */}
-                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50 space-y-4">
+                {/* STEP 3: Configure Machine, Resistance Load & Intersect Graph */}
+                <div className="bg-brand-surface p-4 rounded-xl border border-neutral-800 space-y-4">
                   <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">
-                    Step 3: Configure Resistance Load & Intersect Graph
+                    Step 3: Configure Machine & Resistance Load
                   </label>
 
+                  {/* Sliding Bench Trainer Model Selector */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-xs font-bold text-brand-text">Sliding Bench Trainer Model:</span>
+                      <span className="text-[11px] font-mono font-bold text-brand-cyan">
+                        {isCustomModel ? 'Manual Calibration' : `${activeModel.levels.length} Settings`}
+                      </span>
+                    </div>
+                    <select
+                      value={selectedModelId}
+                      onChange={(e) => handleModelChange(e.target.value)}
+                      className="w-full bg-brand-base border border-neutral-700 rounded-lg p-2 text-xs font-bold text-brand-text focus:outline-none focus:border-brand-cyan"
+                    >
+                      {Object.values(TRAINER_MODELS).map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Body weight calibration */}
-                  <div className="flex justify-between items-center bg-brand-base p-2.5 rounded-lg border border-slate-800">
+                  <div className="flex justify-between items-center bg-brand-base p-2.5 rounded-lg border border-neutral-800">
                     <span className="text-xs font-bold text-brand-muted">User Body Weight:</span>
                     <div className="flex items-center gap-1">
                       <input
@@ -1756,35 +1873,63 @@
                           }
                         }}
                         placeholder="180"
-                        className="w-16 bg-slate-900 border border-slate-700 text-center rounded text-xs font-mono font-bold text-brand-cyan p-1 focus:outline-none focus:border-brand-cyan"
+                        className="w-16 bg-neutral-900 border border-neutral-700 text-center rounded text-xs font-mono font-bold text-brand-cyan p-1 focus:outline-none focus:border-brand-cyan"
                       />
                       <span className="text-xs text-brand-muted font-bold">lbs</span>
                     </div>
                   </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs font-bold text-brand-text">Total Gym FIT Incline Level:</span>
-                      <span className="text-xs font-mono font-black text-brand-amber">
-                        Level {tgLevel} ({Math.round(activeLvlObj.bodyWeightPct * 100)}% BW = {currentGlideboardLoad} lbs)
-                      </span>
+                  {/* Machine Incline Level OR Custom Resistance % */}
+                  {!isCustomModel ? (
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-xs font-bold text-brand-text">Tower Height / Incline Level:</span>
+                        <span className="text-xs font-mono font-black text-brand-amber">
+                          Level {tgLevel} ({Math.round(activeLvlObj.bodyWeightPct * 100)}% BW = {currentGlideboardLoad} lbs)
+                        </span>
+                      </div>
+                      <select
+                        value={tgLevel}
+                        onChange={(e) => setTgLevel(Number(e.target.value))}
+                        className="w-full bg-brand-base border border-neutral-700 rounded-lg p-2 text-xs font-bold text-brand-text focus:outline-none focus:border-brand-cyan"
+                      >
+                        {activeModel.levels.map((lvl) => (
+                          <option key={lvl.level} value={lvl.level}>
+                            Level {lvl.level} ({lvl.angle} Incline — {Math.round(lvl.bodyWeightPct * 100)}% BW)
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <select
-                      value={tgLevel}
-                      onChange={(e) => setTgLevel(Number(e.target.value))}
-                      className="w-full bg-brand-base border border-slate-700 rounded-lg p-2 text-xs font-bold text-brand-text"
-                    >
-                      {TG_FIT_LEVELS.map((lvl) => (
-                        <option key={lvl.level} value={lvl.level}>
-                          Level {lvl.level} ({lvl.angle} Incline - {Math.round(lvl.bodyWeightPct * 100)}% BW)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  ) : (
+                    <div className="flex justify-between items-center bg-brand-base p-2.5 rounded-lg border border-neutral-800">
+                      <div>
+                        <span className="text-xs font-bold text-brand-text block">Custom Incline Resistance:</span>
+                        <span className="text-[10px] text-brand-muted">Glideboard = {currentGlideboardLoad} lbs</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={customPctStr}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*$/.test(val)) {
+                              setCustomPctStr(val);
+                            }
+                          }}
+                          placeholder="55"
+                          className="w-16 bg-neutral-900 border border-neutral-700 text-center rounded text-xs font-mono font-bold text-brand-amber p-1 focus:outline-none focus:border-brand-cyan"
+                        />
+                        <span className="text-xs text-brand-muted font-bold">% BW</span>
+                      </div>
+                    </div>
+                  )}
 
+                  {/* Resistance Band Overlay */}
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs font-bold text-brand-text">Serious Steel Band Overlay:</span>
+                      <span className="text-xs font-bold text-brand-text">Resistance Band Overlay:</span>
                       <span className="text-xs font-mono font-black text-brand-cyan">
                         +{selectedBandObj.tension} lbs Peak Tension
                       </span>
@@ -1792,7 +1937,7 @@
                     <select
                       value={selectedBand}
                       onChange={(e) => setSelectedBand(e.target.value)}
-                      className="w-full bg-brand-base border border-slate-700 rounded-lg p-2 text-xs font-bold text-brand-text"
+                      className="w-full bg-brand-base border border-neutral-700 rounded-lg p-2 text-xs font-bold text-brand-text focus:outline-none focus:border-brand-cyan"
                     >
                       {BAND_OPTIONS.map((b) => (
                         <option key={b.id} value={b.id}>{b.label}</option>
@@ -1801,43 +1946,54 @@
                   </div>
 
                   {/* Effective Lifted Resistance Intersection Graph */}
-                  <div className="bg-brand-base p-3.5 rounded-xl border border-slate-800 space-y-2">
+                  <div className="bg-brand-base p-3.5 rounded-xl border border-neutral-800 space-y-2">
                     <div className="flex justify-between items-center text-[11px] font-mono">
                       <span className="text-brand-muted uppercase font-bold">Effective Load Lifted Graph</span>
                       <span className="text-brand-cyan font-black text-xs">Total: {currentTotalWorkingLoad} lbs</span>
                     </div>
 
-                    <div className="relative h-28 w-full flex items-end justify-between pt-4 px-1 border-b border-slate-800 gap-1">
-                      {TG_FIT_LEVELS.map((l) => {
-                        const boardLoad = Math.round(parsedBodyWeight * l.bodyWeightPct);
-                        const totalLoad = boardLoad + selectedBandObj.tension;
-                        const isSelected = l.level === tgLevel;
-                        const barHeightPct = Math.min(100, Math.max(15, (totalLoad / 300) * 100));
+                    {!isCustomModel ? (
+                      <div className="relative h-28 w-full flex items-end justify-between pt-4 px-1 border-b border-neutral-800 gap-1">
+                        {activeModel.levels.map((l) => {
+                          const boardLoad = Math.round(parsedBodyWeight * l.bodyWeightPct);
+                          const totalLoad = boardLoad + selectedBandObj.tension;
+                          const isSelected = l.level === tgLevel;
+                          const barHeightPct = Math.min(100, Math.max(15, (totalLoad / maxChartLoad) * 100));
 
-                        return (
-                          <div
-                            key={l.level}
-                            onClick={() => setTgLevel(l.level)}
-                            className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group"
-                          >
-                            <span className="text-[9px] font-mono mb-1 text-slate-400 group-hover:text-brand-cyan">
-                              {totalLoad}
-                            </span>
+                          return (
                             <div
-                              className={`w-full rounded-t transition-all duration-300 ${
-                                isSelected
-                                  ? 'bg-brand-cyan shadow-md shadow-cyan-500/30'
-                                  : 'bg-slate-800 hover:bg-slate-700'
-                              }`}
-                              style={{ height: `${barHeightPct}%` }}
-                            />
-                            <span className={`text-[9px] font-mono mt-1 ${isSelected ? 'text-brand-cyan font-bold' : 'text-slate-500'}`}>
-                              L{l.level}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                              key={l.level}
+                              onClick={() => setTgLevel(l.level)}
+                              className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group"
+                            >
+                              <span className="text-[9px] font-mono mb-1 text-neutral-400 group-hover:text-brand-cyan">
+                                {totalLoad}
+                              </span>
+                              <div
+                                className={`w-full rounded-t transition-all duration-300 ${
+                                  isSelected
+                                    ? 'bg-brand-cyan shadow-md shadow-lime-400/20'
+                                    : 'bg-neutral-800 hover:bg-neutral-700'
+                                }`}
+                                style={{ height: `${barHeightPct}%` }}
+                              />
+                              <span className={`text-[9px] font-mono mt-1 ${isSelected ? 'text-brand-cyan font-bold' : 'text-neutral-500'}`}>
+                                L{l.level}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-3 px-2 border-b border-neutral-800">
+                        <div className="w-full bg-neutral-900 rounded-full h-3 overflow-hidden border border-neutral-800">
+                          <div
+                            className="bg-brand-cyan h-full transition-all duration-300"
+                            style={{ width: `${Math.min(100, Math.max(10, parsedCustomPct * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-center text-[10px] text-brand-muted font-mono pt-1">
                       <span>Glideboard ({currentGlideboardLoad} lbs)</span>
@@ -1850,7 +2006,7 @@
                 </div>
 
                 {/* STEP 4: Activation Set (RPE 8) */}
-                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50 space-y-3">
+                <div className="bg-brand-surface p-4 rounded-xl border border-neutral-800 space-y-3">
                   <div className="flex justify-between items-center">
                     <label className="text-xs font-bold text-brand-muted uppercase tracking-wider">
                       Step 4: Activation Set (RPE 8)
@@ -1866,7 +2022,7 @@
                       value={activationReps}
                       disabled={activationDone}
                       onChange={(e) => setActivationReps(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-20 bg-brand-base border border-slate-700 text-center rounded-lg p-2 font-black text-lg text-brand-text disabled:opacity-50"
+                      className="w-20 bg-brand-base border border-neutral-700 text-center rounded-lg p-2 font-black text-lg text-brand-text disabled:opacity-50 focus:outline-none focus:border-brand-cyan"
                     />
                     <span className="text-xs text-brand-muted flex-1">Pre-exhausts slow-twitch fibers before mini-sets.</span>
                   </div>
@@ -1875,7 +2031,7 @@
                     <button
                       type="button"
                       onClick={handleStartActivationRest}
-                      className="w-full py-2.5 bg-brand-cyan hover:bg-cyan-400 text-brand-base font-black text-xs rounded-lg transition-all uppercase tracking-wider shadow-md shadow-cyan-950/20"
+                      className="w-full py-2.5 bg-brand-cyan hover:brightness-110 text-brand-base font-black text-xs rounded-lg transition-all uppercase tracking-wider shadow-md shadow-lime-500/10"
                     >
                       Complete Activation & Start 5-Breath Rest ➔
                     </button>
@@ -1884,7 +2040,7 @@
 
                 {/* Rest Timer */}
                 {isResting && (
-                  <div className="bg-brand-surface border-2 border-brand-cyan p-5 rounded-2xl text-center space-y-3 shadow-lg shadow-cyan-950/40">
+                  <div className="bg-brand-surface border-2 border-brand-cyan p-5 rounded-2xl text-center space-y-3 shadow-lg shadow-lime-500/15">
                     <span className="text-xs font-black uppercase text-brand-cyan tracking-widest block">
                       5-BREATH REST PAUSE
                     </span>
@@ -1900,7 +2056,7 @@
                       <button
                         type="button"
                         onClick={handleSkipRest}
-                        className="px-3 py-1 bg-brand-base hover:bg-slate-800 text-brand-text text-xs font-bold rounded border border-slate-700"
+                        className="px-3 py-1 bg-brand-base hover:bg-neutral-800 text-brand-text text-xs font-bold rounded border border-neutral-700"
                       >
                         Skip Rest ➔
                       </button>
@@ -1909,7 +2065,7 @@
                 )}
 
                 {/* STEP 5: Cluster Mini-Sets */}
-                <div className="bg-brand-surface p-4 rounded-xl border border-slate-700/50">
+                <div className="bg-brand-surface p-4 rounded-xl border border-neutral-800">
                   <h3 className="text-xs font-bold text-brand-muted mb-3 uppercase tracking-wider">
                     Step 5: Cluster Mini-Sets (3–5 Reps)
                   </h3>
@@ -1922,24 +2078,24 @@
                           miniSets[idx] !== undefined
                             ? miniSets[idx] < 3
                               ? 'bg-rose-950/80 border-rose-700 text-rose-300'
-                              : 'bg-slate-900 border-brand-cyan text-brand-cyan'
-                            : 'bg-brand-base border-slate-800 text-slate-600'
+                              : 'bg-neutral-900 border-brand-cyan text-brand-cyan'
+                            : 'bg-brand-base border-neutral-800 text-neutral-600'
                         }`}
                       >
-                        <div className="text-[10px] font-bold text-slate-500 mb-1">M{idx + 1}</div>
+                        <div className="text-[10px] font-bold text-neutral-500 mb-1">M{idx + 1}</div>
                         <div className="text-base font-black font-mono">{miniSets[idx] !== undefined ? miniSets[idx] : '-'}</div>
                       </div>
                     ))}
                   </div>
 
                   {!activationDone && (
-                    <p className="text-xs text-brand-amber text-center font-semibold bg-amber-950/30 p-2 rounded border border-amber-800/40">
+                    <p className="text-xs text-brand-amber text-center font-semibold bg-orange-950/30 p-2 rounded border border-brand-amber/30">
                       ⚠️ Complete activation set in Step 4 above to unlock mini-sets.
                     </p>
                   )}
 
                   {activationDone && !isCompleted && !isResting && (
-                    <div className="space-y-3 pt-2 border-t border-slate-800">
+                    <div className="space-y-3 pt-2 border-t border-neutral-800">
                       <label className="block text-xs text-brand-text font-bold mb-2">
                         Select Reps Completed for Mini-Set #{miniSets.length + 1}:
                       </label>
@@ -1960,7 +2116,7 @@
                               className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${
                                 isSelected
                                   ? 'bg-brand-base border-brand-cyan text-brand-text ring-1 ring-brand-cyan'
-                                  : 'bg-brand-base border-slate-800 hover:border-slate-700 text-brand-muted'
+                                  : 'bg-brand-base border-neutral-800 hover:border-neutral-700 text-brand-muted'
                               }`}
                             >
                               <div className="flex items-center gap-3">
@@ -1968,7 +2124,7 @@
                                   className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-sm ${
                                     isSelected
                                       ? 'bg-brand-cyan text-brand-base'
-                                      : 'bg-slate-800 text-brand-muted'
+                                      : 'bg-neutral-800 text-brand-muted'
                                   }`}
                                 >
                                   {reps}
@@ -1977,7 +2133,7 @@
                               </div>
 
                               {isSelected && (
-                                <span className="text-xs font-black text-brand-cyan uppercase tracking-wider bg-slate-900 px-2.5 py-1 rounded border border-brand-cyan/40">
+                                <span className="text-xs font-black text-brand-cyan uppercase tracking-wider bg-neutral-900 px-2.5 py-1 rounded border border-brand-cyan/40">
                                   ✓ Selected
                                 </span>
                               )}
@@ -1990,7 +2146,7 @@
                         <button
                           type="button"
                           onClick={handleConfirmAndStartRest}
-                          className="w-full py-3 bg-brand-cyan hover:bg-cyan-400 text-brand-base font-black text-xs rounded-xl transition-all uppercase tracking-wider shadow-lg shadow-cyan-950/30 mt-4"
+                          className="w-full py-3 bg-brand-cyan hover:brightness-110 text-brand-base font-black text-xs rounded-xl transition-all uppercase tracking-wider shadow-lg shadow-lime-500/15 mt-4"
                         >
                           {selectedReps >= 3
                             ? `Confirm ${selectedReps} Reps & Start 5-Breath Rest ➔`
@@ -2011,7 +2167,7 @@
                       <button
                         type="button"
                         onClick={saveWorkout}
-                        className="mt-3 w-full py-2.5 bg-brand-cyan text-brand-base font-black text-xs rounded-lg hover:bg-cyan-400 transition-colors uppercase tracking-wider"
+                        className="mt-3 w-full py-2.5 bg-brand-cyan text-brand-base font-black text-xs rounded-lg hover:brightness-110 transition-all uppercase tracking-wider"
                       >
                         SAVE TO HISTORY LOG
                       </button>
@@ -2022,23 +2178,23 @@
             ) : (
               <div className="space-y-3">
                 {history.length === 0 ? (
-                  <div className="text-center py-12 bg-brand-surface rounded-xl border border-slate-700/50">
+                  <div className="text-center py-12 bg-brand-surface rounded-xl border border-neutral-800">
                     <p className="text-brand-muted text-sm font-semibold">No saved workouts yet.</p>
-                    <p className="text-xs text-slate-500 mt-1">Complete a Myo-Rep session to view history.</p>
+                    <p className="text-xs text-neutral-500 mt-1">Complete a Myo-Rep session to view history.</p>
                   </div>
                 ) : (
                   history.map((log) => (
-                    <div key={log.id} className="bg-brand-surface p-4 rounded-xl border border-slate-700/50">
+                    <div key={log.id} className="bg-brand-surface p-4 rounded-xl border border-neutral-800">
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <h4 className="font-bold text-sm text-brand-text">{log.exercise}</h4>
                           <span className="text-xs text-brand-muted">{log.date}</span>
                         </div>
-                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-brand-base text-brand-cyan border border-slate-800">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-brand-base text-brand-cyan border border-neutral-800">
                           {log.workingLoad || log.setting}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-800">
                         <span className="text-brand-muted">Activation: <strong className="text-brand-text">{log.activationReps} reps</strong></span>
                         <span className="text-brand-muted">Mini-Sets: <strong className="text-brand-cyan font-mono">[{log.miniSets.join(', ')}]</strong></span>
                         <span className="text-brand-muted">Total: <strong className="text-brand-text font-mono">{log.totalReps}</strong></span>
