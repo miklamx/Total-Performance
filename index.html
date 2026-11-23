@@ -46,6 +46,7 @@
       const { useState, useEffect, useRef } = React;
 
       const STORAGE_KEY = 'myorep-history';
+      const CUSTOM_EXERCISES_KEY = 'myorep-custom-exercises';
 
       const MUSCLE_GROUPS = ['ALL', 'TOTAL BODY RELEASE', 'HIP MOBILITY', 'BACK MOBILITY', 'CHEST', 'BACK', 'LEGS', 'SHOULDERS', 'ARMS'];
 
@@ -146,7 +147,57 @@
         return match ? match[1] : null;
       }
 
-      const EXERCISES = [
+      function parseTimestampToSeconds(input) {
+        if (!input) return 0;
+        const clean = String(input).trim().replace(/s$/i, '');
+        if (/^\d+$/.test(clean)) return parseInt(clean, 10);
+        const parts = clean.split(':').map((p) => parseInt(p, 10));
+        if (parts.some(isNaN)) return 0;
+        if (parts.length === 2) return parts[0] * 60 + parts[1];
+        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        return 0;
+      }
+
+      function formatSecondsToLabel(seconds) {
+        const s = Math.max(0, Math.floor(seconds));
+        const mins = Math.floor(s / 60);
+        const secs = s % 60;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+      }
+
+      function normalizeYouTubeInput(rawUrl, manualTimestamp) {
+        const trimmedUrl = (rawUrl || '').trim();
+        if (!trimmedUrl) return { videoUrl: '', timestampLabel: '' };
+
+        const vId = getYouTubeId(trimmedUrl);
+        let seconds = 0;
+
+        if (manualTimestamp && manualTimestamp.trim()) {
+          seconds = parseTimestampToSeconds(manualTimestamp);
+        } else {
+          const tMatch = trimmedUrl.match(/[?&](?:t|start)=([\w:]+)/i);
+          if (tMatch) {
+            seconds = parseTimestampToSeconds(tMatch[1]);
+          }
+        }
+
+        if (vId) {
+          const normalizedUrl = seconds > 0
+            ? `https://youtu.be/${vId}?t=${seconds}s`
+            : `https://youtu.be/${vId}`;
+          return {
+            videoUrl: normalizedUrl,
+            timestampLabel: seconds > 0 ? formatSecondsToLabel(seconds) : 'Video'
+          };
+        }
+
+        return {
+          videoUrl: trimmedUrl.startsWith('http') ? trimmedUrl : `https://${trimmedUrl}`,
+          timestampLabel: manualTimestamp?.trim() || 'Link'
+        };
+      }
+
+      const DEFAULT_EXERCISES = [
         // ==========================================
         // 1. TOTAL BODY RELEASE (15 Exercises - Sandy Leo)
         // ==========================================
@@ -1495,6 +1546,18 @@
         setTimeout(() => playChime(880, 'sine', 0.4), 150);
       }
 
+      function triggerDownload(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
       function App() {
         const [activeTab, setActiveTab] = useState('workout');
         
@@ -1502,9 +1565,20 @@
         const [selectedModelId, setSelectedModelId] = useState('tg-fit');
         const [customPctStr, setCustomPctStr] = useState('55');
         const [selectedMuscle, setSelectedMuscle] = useState('ALL');
-        const [selectedExerciseId, setSelectedExerciseId] = useState(EXERCISES[0].id);
+        const [customExercises, setCustomExercises] = useState([]);
+        const [selectedExerciseId, setSelectedExerciseId] = useState(DEFAULT_EXERCISES[0].id);
         const [tgLevel, setTgLevel] = useState(5);
         const [selectedBand, setSelectedBand] = useState('none');
+
+        // Custom Exercise Form State
+        const [showAddForm, setShowAddForm] = useState(false);
+        const [newExName, setNewExName] = useState('');
+        const [newExCategory, setNewExCategory] = useState('CHEST');
+        const [newExEquipment, setNewExEquipment] = useState('Sliding Bench Trainer');
+        const [newExVideoUrl, setNewExVideoUrl] = useState('');
+        const [newExTimestamp, setNewExTimestamp] = useState('');
+        const [newExDescription, setNewExDescription] = useState('');
+        const [formError, setFormError] = useState('');
 
         const [activationReps, setActivationReps] = useState(12);
         const [activationDone, setActivationDone] = useState(false);
@@ -1514,16 +1588,19 @@
         const [isResting, setIsResting] = useState(false);
         const [isCompleted, setIsCompleted] = useState(false);
         const [history, setHistory] = useState([]);
+        const [exportStatus, setExportStatus] = useState('');
 
         const timerRef = useRef(null);
+        const fileInputRef = useRef(null);
 
+        const allExercises = [...customExercises, ...DEFAULT_EXERCISES];
         const parsedBodyWeight = parseFloat(userBodyWeightStr) || 0;
 
         const filteredExercises = selectedMuscle === 'ALL' 
-          ? EXERCISES 
-          : EXERCISES.filter(ex => ex.category === selectedMuscle);
+          ? allExercises 
+          : allExercises.filter(ex => ex.category === selectedMuscle);
 
-        const exercise = EXERCISES.find((item) => item.id === selectedExerciseId) || filteredExercises[0] || EXERCISES[0];
+        const exercise = allExercises.find((item) => item.id === selectedExerciseId) || filteredExercises[0] || allExercises[0];
         const selectedBandObj = BAND_OPTIONS.find(b => b.id === selectedBand) || BAND_OPTIONS[0];
 
         // Active trainer model & dynamic effective load calculation
@@ -1544,10 +1621,13 @@
 
         useEffect(() => {
           try {
-            const loaded = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if (Array.isArray(loaded)) setHistory(loaded);
+            const loadedHistory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (Array.isArray(loadedHistory)) setHistory(loadedHistory);
+
+            const loadedCustom = JSON.parse(localStorage.getItem(CUSTOM_EXERCISES_KEY) || '[]');
+            if (Array.isArray(loadedCustom)) setCustomExercises(loadedCustom);
           } catch (e) {
-            console.warn('Failed to load workout history', e);
+            console.warn('Failed to load local data', e);
           }
         }, []);
 
@@ -1558,6 +1638,14 @@
             console.warn('Failed to save workout history', e);
           }
         }, [history]);
+
+        useEffect(() => {
+          try {
+            localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(customExercises));
+          } catch (e) {
+            console.warn('Failed to save custom exercises', e);
+          }
+        }, [customExercises]);
 
         useEffect(() => {
           return () => {
@@ -1593,6 +1681,148 @@
           }
         }, [isResting, restTimer]);
 
+        const showStatusToast = (msg) => {
+          setExportStatus(msg);
+          setTimeout(() => setExportStatus(''), 3500);
+        };
+
+        const handleOpenAddForm = () => {
+          setNewExCategory(selectedMuscle !== 'ALL' ? selectedMuscle : 'CHEST');
+          setFormError('');
+          setShowAddForm((prev) => !prev);
+        };
+
+        const handleSaveCustomExercise = (e) => {
+          e.preventDefault();
+          const trimmedName = newExName.trim();
+          if (!trimmedName) {
+            setFormError('Please enter an exercise name.');
+            return;
+          }
+
+          const { videoUrl, timestampLabel } = normalizeYouTubeInput(newExVideoUrl, newExTimestamp);
+
+          const created = {
+            id: `custom-${Date.now()}`,
+            name: trimmedName,
+            category: newExCategory,
+            equipment: newExEquipment.trim() || 'Sliding Bench Trainer',
+            description: newExDescription.trim() || 'Custom user movement added to BodyEngine library.',
+            defaultLevel: `Level ${tgLevel}`,
+            videoUrl,
+            timestampLabel,
+            isCustom: true
+          };
+
+          setCustomExercises((prev) => [created, ...prev]);
+          if (selectedMuscle !== 'ALL' && selectedMuscle !== created.category) {
+            setSelectedMuscle(created.category);
+          }
+          setSelectedExerciseId(created.id);
+          resetSession();
+
+          // Reset & close form
+          setNewExName('');
+          setNewExVideoUrl('');
+          setNewExTimestamp('');
+          setNewExDescription('');
+          setFormError('');
+          setShowAddForm(false);
+        };
+
+        const handleDeleteCustomExercise = (id, e) => {
+          e.stopPropagation();
+          const updated = customExercises.filter((item) => item.id !== id);
+          setCustomExercises(updated);
+          if (selectedExerciseId === id) {
+            const fallback = updated[0] || DEFAULT_EXERCISES[0];
+            setSelectedExerciseId(fallback.id);
+            resetSession();
+          }
+        };
+
+        const handleExportJSON = () => {
+          if (history.length === 0 && customExercises.length === 0) return;
+          const dateStamp = new Date().toISOString().split('T')[0];
+          const payload = {
+            app: 'BodyEngine',
+            version: '1.1',
+            exportedAt: new Date().toISOString(),
+            workouts: history,
+            customExercises
+          };
+          triggerDownload(JSON.stringify(payload, null, 2), `BodyEngine-backup-${dateStamp}.json`, 'application/json');
+          showStatusToast(`Exported ${history.length} workout(s) & ${customExercises.length} custom exercise(s).`);
+        };
+
+        const handleExportCSV = () => {
+          if (history.length === 0) return;
+          const dateStamp = new Date().toISOString().split('T')[0];
+          const headers = ['Date', 'Exercise', 'Equipment', 'Machine Setting', 'Working Load', 'Activation Reps', 'Mini-Sets', 'Total Reps'];
+          const escapeCSV = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+
+          const rows = history.map((log) => [
+            escapeCSV(log.date),
+            escapeCSV(log.exercise),
+            escapeCSV(log.equipment),
+            escapeCSV(log.setting),
+            escapeCSV(log.workingLoad || ''),
+            escapeCSV(log.activationReps),
+            escapeCSV(Array.isArray(log.miniSets) ? log.miniSets.join(' | ') : ''),
+            escapeCSV(log.totalReps)
+          ].join(','));
+
+          const csvContent = [headers.join(','), ...rows].join('\n');
+          triggerDownload(csvContent, `BodyEngine-history-${dateStamp}.csv`, 'text/csv;charset=utf-8;');
+          showStatusToast(`Exported ${history.length} workout(s) to CSV.`);
+        };
+
+        const handleImportJSON = (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const parsed = JSON.parse(e.target.result);
+              const incomingWorkouts = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.workouts) ? parsed.workouts : null);
+              const incomingCustom = Array.isArray(parsed.customExercises) ? parsed.customExercises : [];
+
+              if (!incomingWorkouts && incomingCustom.length === 0) {
+                showStatusToast('Invalid backup file format.');
+                return;
+              }
+
+              let addedWorkoutsCount = 0;
+              let addedCustomCount = 0;
+
+              if (incomingWorkouts) {
+                setHistory((prev) => {
+                  const existingIds = new Set(prev.map((item) => item.id));
+                  const uniqueNew = incomingWorkouts.filter((item) => item && item.exercise && !existingIds.has(item.id));
+                  addedWorkoutsCount = uniqueNew.length;
+                  return [...uniqueNew, ...prev].sort((a, b) => (b.id || 0) - (a.id || 0));
+                });
+              }
+
+              if (incomingCustom.length > 0) {
+                setCustomExercises((prev) => {
+                  const existingIds = new Set(prev.map((item) => item.id));
+                  const uniqueCustom = incomingCustom.filter((item) => item && item.name && !existingIds.has(item.id));
+                  addedCustomCount = uniqueCustom.length;
+                  return [...uniqueCustom, ...prev];
+                });
+              }
+
+              showStatusToast(`Restored ${addedWorkoutsCount} workout(s) & ${addedCustomCount} custom move(s).`);
+            } catch (err) {
+              showStatusToast('Could not read JSON file.');
+            }
+          };
+          reader.readAsText(file);
+          event.target.value = '';
+        };
+
         const resetSession = () => {
           setMiniSets([]);
           setSelectedReps(null);
@@ -1613,7 +1843,7 @@
 
         const handleMuscleChange = (group) => {
           setSelectedMuscle(group);
-          const firstInGroup = group === 'ALL' ? EXERCISES[0] : EXERCISES.find(ex => ex.category === group);
+          const firstInGroup = group === 'ALL' ? allExercises[0] : allExercises.find(ex => ex.category === group);
           if (firstInGroup) {
             setSelectedExerciseId(firstInGroup.id);
           }
@@ -1745,16 +1975,106 @@
                   </div>
                 </div>
 
-                {/* Step 2: Visual Grid Picker with YouTube Video Thumbnails */}
+                {/* Step 2: Visual Grid Picker with YouTube Video Thumbnails + Add Custom Link */}
                 <div className="bg-brand-surface p-4 rounded-xl border border-neutral-800 space-y-3">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center gap-2">
                     <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">
-                      Step 2: Choose Exercise Movement
+                      Step 2: Choose Exercise ({filteredExercises.length})
                     </label>
-                    <span className="text-[11px] font-bold text-brand-cyan">
-                      {filteredExercises.length} Available
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddForm}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-all uppercase tracking-wide ${
+                        showAddForm
+                          ? 'bg-neutral-800 text-brand-muted border border-neutral-700'
+                          : 'bg-brand-cyan text-brand-base shadow-sm hover:brightness-110'
+                      }`}
+                    >
+                      {showAddForm ? '✕ Cancel' : '+ Add Video Link'}
+                    </button>
                   </div>
+
+                  {/* Collapsible Custom Video Exercise Creator */}
+                  {showAddForm && (
+                    <form onSubmit={handleSaveCustomExercise} className="bg-brand-base p-3.5 rounded-xl border border-brand-cyan/50 space-y-3">
+                      <div className="flex justify-between items-center border-b border-neutral-800 pb-2">
+                        <span className="text-xs font-black text-brand-cyan uppercase tracking-wider">
+                          Add Custom Video Exercise
+                        </span>
+                        <span className="text-[10px] text-brand-muted">Saved locally</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-brand-muted mb-1">Exercise Name *</label>
+                        <input
+                          type="text"
+                          value={newExName}
+                          onChange={(e) => setNewExName(e.target.value)}
+                          placeholder="e.g., Single-Arm Cable Lat Pulldown"
+                          className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-xs text-brand-text focus:outline-none focus:border-brand-cyan"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-brand-muted mb-1">Muscle Group</label>
+                          <select
+                            value={newExCategory}
+                            onChange={(e) => setNewExCategory(e.target.value)}
+                            className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-xs font-bold text-brand-text focus:outline-none focus:border-brand-cyan"
+                          >
+                            {MUSCLE_GROUPS.filter((g) => g !== 'ALL').map((g) => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-brand-muted mb-1">Start Time (Optional)</label>
+                          <input
+                            type="text"
+                            value={newExTimestamp}
+                            onChange={(e) => setNewExTimestamp(e.target.value)}
+                            placeholder="e.g., 1:35 or 95"
+                            className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-xs font-mono text-brand-text focus:outline-none focus:border-brand-cyan"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-brand-muted mb-1">YouTube Video URL</label>
+                        <input
+                          type="url"
+                          value={newExVideoUrl}
+                          onChange={(e) => setNewExVideoUrl(e.target.value)}
+                          placeholder="https://youtu.be/... or youtube.com/watch?v=..."
+                          className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-xs text-brand-cyan focus:outline-none focus:border-brand-cyan"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-brand-muted mb-1">Form Cues / Notes (Optional)</label>
+                        <input
+                          type="text"
+                          value={newExDescription}
+                          onChange={(e) => setNewExDescription(e.target.value)}
+                          placeholder="e.g., Keep elbows tucked and pause 1s at peak contraction."
+                          className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-xs text-brand-text focus:outline-none focus:border-brand-cyan"
+                        />
+                      </div>
+
+                      {formError && (
+                        <p className="text-xs font-bold text-brand-amber">{formError}</p>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 bg-brand-cyan hover:brightness-110 text-brand-base font-black text-xs rounded-lg transition-all uppercase tracking-wider"
+                      >
+                        Save Exercise to Library
+                      </button>
+                    </form>
+                  )}
 
                   {/* 2-Column Scrollable Thumbnail Grid */}
                   <div className="grid grid-cols-2 gap-2.5 max-h-72 overflow-y-auto p-1 pr-1.5">
@@ -1782,8 +2102,8 @@
                                 loading="lazy"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-neutral-600 text-xs font-bold">
-                                No Video
+                              <div className="w-full h-full flex items-center justify-center text-neutral-500 text-[10px] font-bold px-2 text-center">
+                                {ex.videoUrl ? 'External Video Link' : 'Custom Movement'}
                               </div>
                             )}
 
@@ -1793,10 +2113,25 @@
                               </span>
                             )}
 
-                            {isSelected && (
+                            {isSelected ? (
                               <div className="absolute top-1 left-1 bg-brand-cyan text-brand-base text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
                                 Active
                               </div>
+                            ) : ex.isCustom ? (
+                              <div className="absolute top-1 left-1 bg-brand-amber text-brand-base text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
+                                Custom
+                              </div>
+                            ) : null}
+
+                            {ex.isCustom && (
+                              <button
+                                type="button"
+                                title="Delete custom exercise"
+                                onClick={(e) => handleDeleteCustomExercise(ex.id, e)}
+                                className="absolute top-1 right-1 bg-neutral-950/90 hover:bg-rose-600 text-neutral-300 hover:text-white text-[10px] font-black w-5 h-5 rounded flex items-center justify-center border border-neutral-700"
+                              >
+                                ×
+                              </button>
                             )}
                           </div>
 
@@ -1824,7 +2159,7 @@
                         <svg className="w-3.5 h-3.5 fill-current text-rose-500" viewBox="0 0 24 24">
                           <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
                         </svg>
-                        <span>Watch Video Form Guide ({exercise.timestampLabel}) ➔</span>
+                        <span>Watch Video Form Guide ({exercise.timestampLabel || 'Open'}) ➔</span>
                       </a>
                     )}
                   </div>
@@ -2176,11 +2511,63 @@
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Export & Backup Controls */}
+                <div className="bg-brand-surface p-4 rounded-xl border border-neutral-800 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-brand-muted uppercase tracking-wider">
+                      Data Backup & Export
+                    </span>
+                    <span className="text-[11px] font-mono text-brand-cyan font-bold">
+                      {history.length} Logs · {customExercises.length} Custom
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      disabled={history.length === 0 && customExercises.length === 0}
+                      onClick={handleExportJSON}
+                      className="py-2 px-2 bg-brand-base hover:bg-neutral-800 disabled:opacity-40 disabled:pointer-events-none text-brand-cyan border border-neutral-700 rounded-lg text-[11px] font-black transition-all uppercase tracking-wide"
+                    >
+                      Export JSON
+                    </button>
+                    <button
+                      type="button"
+                      disabled={history.length === 0}
+                      onClick={handleExportCSV}
+                      className="py-2 px-2 bg-brand-base hover:bg-neutral-800 disabled:opacity-40 disabled:pointer-events-none text-brand-text border border-neutral-700 rounded-lg text-[11px] font-black transition-all uppercase tracking-wide"
+                    >
+                      Export CSV
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="py-2 px-2 bg-brand-base hover:bg-neutral-800 text-brand-amber border border-neutral-700 rounded-lg text-[11px] font-black transition-all uppercase tracking-wide"
+                    >
+                      Import JSON
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleImportJSON}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {exportStatus && (
+                    <div className="text-xs font-bold text-brand-cyan bg-brand-base border border-brand-cyan/40 rounded-lg px-3 py-2 text-center">
+                      {exportStatus}
+                    </div>
+                  )}
+                </div>
+
+                {/* History List */}
                 {history.length === 0 ? (
                   <div className="text-center py-12 bg-brand-surface rounded-xl border border-neutral-800">
                     <p className="text-brand-muted text-sm font-semibold">No saved workouts yet.</p>
-                    <p className="text-xs text-neutral-500 mt-1">Complete a Myo-Rep session to view history.</p>
+                    <p className="text-xs text-neutral-500 mt-1">Complete a Myo-Rep session or import a JSON backup.</p>
                   </div>
                 ) : (
                   history.map((log) => (
